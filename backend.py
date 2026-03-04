@@ -3,6 +3,34 @@ import sqlite3
 import time
 from pathlib import Path
 
+# Translation cache: (word, lang) -> translated meanings list
+_translation_cache: dict[tuple, list[str]] = {}
+
+LANGUAGES = {
+    "de": ("🇩🇪", "Deutsch"),
+    "en": ("🇬🇧", "English"),
+    "fr": ("🇫🇷", "Français"),
+    "es": ("🇪🇸", "Español"),
+    "it": ("🇮🇹", "Italiano"),
+}
+
+def translate_meanings(meanings: list[str], target_lang: str, word_key: str = "") -> list[str]:
+    """Translate a list of German meanings to target_lang. Returns originals on failure."""
+    if target_lang == "de" or not meanings:
+        return meanings
+    cache_key = (word_key, target_lang)
+    if cache_key in _translation_cache:
+        return _translation_cache[cache_key]
+    try:
+        from deep_translator import GoogleTranslator
+        translator = GoogleTranslator(source="de", target=target_lang)
+        translated = [translator.translate(m) or m for m in meanings]
+        _translation_cache[cache_key] = translated
+        return translated
+    except Exception as e:
+        print(f"[translate] error: {e}")
+        return meanings
+
 DB_FILE = Path(__file__).parent / "navigium.db"
 
 def _conn():
