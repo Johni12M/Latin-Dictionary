@@ -1,0 +1,40 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+.Python
+
+# Virtual environment
+venv/
+.venv/
+env/
+ENV/
+
+# IDE
+.vscode/
+.idea/
+*.suo
+*.user
+
+# Build artifacts
+build/
+dist/
+*.spec
+
+# Database (contains personal search history)
+navigium.db
+
+# Cache (personal lookup cache)
+navigium_cache.json
+
+# Large release binaries (use GitHub Releases instead)
+release/*.exe
+
+# OS
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Logs
+*.log
