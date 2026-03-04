@@ -454,5 +454,48 @@ def main(page: ft.Page):
             
         threading.Thread(target=typewriter, args=(sys.argv[1],), daemon=True).start()
 
+    # --- AUTO-UPDATE CHECK ---
+    def _check_update():
+        result = backend.check_for_update()
+        if not result:
+            return
+        latest, url = result
+        import webbrowser
+
+        def open_release(e):
+            webbrowser.open(url)
+            page.close_banner()
+            page.update()
+
+        def dismiss(e):
+            page.close_banner()
+            page.update()
+
+        page.banner = ft.Banner(
+            bgcolor=ft.Colors.INDIGO_900,
+            leading=ft.Icon(ft.Icons.SYSTEM_UPDATE_ALT, color=ft.Colors.CYAN_ACCENT, size=36),
+            content=ft.Text(
+                f"Update verfügbar: v{latest}  –  Installiere die neue Version, um alle Verbesserungen zu erhalten.",
+                color=ft.Colors.WHITE,
+                size=13,
+            ),
+            actions=[
+                ft.TextButton(
+                    "Jetzt herunterladen",
+                    style=ft.ButtonStyle(color=ft.Colors.CYAN_ACCENT),
+                    on_click=open_release,
+                ),
+                ft.TextButton(
+                    "Später",
+                    style=ft.ButtonStyle(color=ft.Colors.OUTLINE),
+                    on_click=dismiss,
+                ),
+            ],
+        )
+        page.open(page.banner)
+        page.update()
+
+    threading.Thread(target=_check_update, daemon=True).start()
+
 if __name__ == "__main__":
     ft.run(main)

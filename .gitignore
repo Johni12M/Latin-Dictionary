@@ -38,3 +38,6 @@ desktop.ini
 
 # Logs
 *.log
+
+# Copilot / GitHub config (local only)
+.github/

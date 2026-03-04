@@ -3,8 +3,39 @@ import sqlite3
 import time
 from pathlib import Path
 
+APP_VERSION = "1.1.0"
+GITHUB_REPO = "Johni12M/Latin-Dictionary"
+
 # Translation cache: (word, lang) -> translated meanings list
 _translation_cache: dict[tuple, list[str]] = {}
+
+
+def check_for_update() -> tuple[str, str] | None:
+    """Check GitHub for a newer release.
+    Returns (latest_version, download_url) if an update is available, else None.
+    """
+    import requests
+    try:
+        resp = requests.get(
+            f"https://api.github.com/repos/{GITHUB_REPO}/releases/latest",
+            timeout=5,
+            headers={"Accept": "application/vnd.github+json"},
+        )
+        if resp.status_code != 200:
+            return None
+        data = resp.json()
+        latest = data.get("tag_name", "").lstrip("v")
+        if not latest or latest == APP_VERSION:
+            return None
+        # Prefer installer asset, fall back to release page
+        assets = data.get("assets", [])
+        url = next(
+            (a["browser_download_url"] for a in assets if "Setup" in a["name"]),
+            data.get("html_url", f"https://github.com/{GITHUB_REPO}/releases/latest"),
+        )
+        return latest, url
+    except Exception:
+        return None
 
 LANGUAGES = {
     "de": ("🇩🇪", "Deutsch"),
