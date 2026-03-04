@@ -1,5 +1,5 @@
 #define MyAppName "Navigium"
-#define MyAppVersion "1.0.0"
+#define MyAppVersion "1.1.0"
 #define MyAppPublisher "Navigium"
 #define MyAppExeName "Navigium.exe"
 #define MyAppURL "https://navigium.at"
