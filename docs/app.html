@@ -175,8 +175,6 @@
       <div class="sidebar-label">Letzte Suchen</div>
       <div id="histList"></div>
       <hr class="sidebar-div"/>
-      <div class="sidebar-label">Gespeichert</div>
-      <div id="savedCountEl" style="font-size:.8rem;color:var(--muted);padding:.2rem .3rem">0 Vokabeln</div>
     </div>
   </div>
 
@@ -184,7 +182,6 @@
   <div class="main">
     <div class="tabs">
       <button class="tab active" id="tabSearch">Latein ➔ Deutsch</button>
-      <button class="tab" id="tabSaved">Vokabelheft</button>
     </div>
 
     <div class="search-row" id="searchRow">
@@ -211,21 +208,15 @@ const $ = id => document.getElementById(id);
 const sidebar    = $('sidebar');
 const menuBtn    = $('menuBtn');
 const histList   = $('histList');
-const savedCount = $('savedCountEl');
 const searchField= $('searchField');
 const searchBtn  = $('searchBtn');
 const prog       = $('prog');
 const results    = $('results');
 const statusChip = $('statusChip');
-const tabSearch  = $('tabSearch');
-const tabSaved   = $('tabSaved');
-const searchRow  = $('searchRow');
 
 let sidebarOpen = false;
-let currentTab  = 'search';  // 'search' | 'saved'
-let cache       = {};         // word -> results[]
+let cache       = {};
 let history     = JSON.parse(localStorage.getItem('nav_history') || '[]');
-let saved       = JSON.parse(localStorage.getItem('nav_saved')   || '[]');
 
 // ── Sidebar ────────────────────────────────────────────────────────────────
 menuBtn.addEventListener('click', () => {
@@ -247,7 +238,6 @@ function rebuildHistory() {
   histList.innerHTML = history.slice(0,12).map(w =>
     `<div class="hist-item" data-word="${w}">🕒 ${w}</div>`
   ).join('');
-  savedCount.textContent = saved.length + ' Vokabeln';
 }
 histList.addEventListener('click', e => {
   const item = e.target.closest('[data-word]');
@@ -255,18 +245,9 @@ histList.addEventListener('click', e => {
 });
 
 // ── Tabs ───────────────────────────────────────────────────────────────────
-tabSearch.addEventListener('click', () => {
-  currentTab = 'search';
-  tabSearch.classList.add('active'); tabSaved.classList.remove('active');
-  searchRow.style.display = 'flex';
+$('tabSearch').addEventListener('click', () => {
   if (history.length) showHistory();
   else results.innerHTML = '<div class="placeholder"><div>Warte auf Eingabe…</div></div>';
-});
-tabSaved.addEventListener('click', () => {
-  currentTab = 'saved';
-  tabSaved.classList.add('active'); tabSearch.classList.remove('active');
-  searchRow.style.display = 'none';
-  renderSaved();
 });
 
 // ── Parser (mirrors backend.py) ────────────────────────────────────────────
@@ -326,22 +307,12 @@ async function fetchWord(word) {
 // ── Cards ──────────────────────────────────────────────────────────────────
 function escH(s){ return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/"/g,'&quot;'); }
 
-function makeCard(data, word, isSaved=false) {
+function makeCard(data, word) {
   const uid = 'c' + Math.random().toString(36).slice(2);
-  const key = word + '||' + data.head;
-  const alreadySaved = saved.some(s => s.key === key);
-
-  const starBtn = isSaved
-    ? `<button class="card-btn" title="Löschen" onclick="deleteSaved('${escH(key)}')">🗑️</button>`
-    : `<button class="card-btn" id="star${uid}" title="Speichern"
-             onclick="saveCard('${escH(key)}','${escH(word)}','star${uid}')"
-             style="color:${alreadySaved ? 'var(--cyan)' : 'var(--muted)'}">${alreadySaved ? '✓' : '⭐'}</button>`;
-
   const meanings = data.bedeutungen.length
     ? data.bedeutungen.map(b => `<span class="arr">➔</span> ${escH(b)}`).join('<br/>')
     : '<span style="color:var(--muted)">–</span>';
-
-  return `<div class="card" id="${uid}" data-key="${escH(key)}">
+  return `<div class="card" id="${uid}">
     <div class="card-hd">
       <div class="card-title">
         <span class="card-head">${escH(data.head)}</span>
@@ -349,7 +320,6 @@ function makeCard(data, word, isSaved=false) {
       </div>
       <div class="card-actions">
         <button class="card-btn" title="Kopieren" onclick="copyCard('${uid}')">📋</button>
-        ${starBtn}
       </div>
     </div>
     <div class="card-forms">${escH(data.formen)}</div>
@@ -365,31 +335,6 @@ window.copyCard = uid => {
   const btn = el.querySelector('[title="Kopieren"]');
   if (btn) { btn.textContent = '✓'; setTimeout(() => btn.textContent = '📋', 1500); }
 };
-
-window.saveCard = (key, word, starId) => {
-  if (saved.some(s => s.key === key)) return;
-  // find data from cache
-  const data = cache[word.toLowerCase()]?.find(r => (word+'||'+r.head) === key);
-  if (!data) return;
-  saved.push({ key, word, data });
-  localStorage.setItem('nav_saved', JSON.stringify(saved));
-  const btn = document.getElementById(starId);
-  if (btn) { btn.textContent = '✓'; btn.style.color = 'var(--cyan)'; btn.disabled = true; }
-  rebuildHistory();
-};
-
-window.deleteSaved = key => {
-  saved = saved.filter(s => s.key !== key);
-  localStorage.setItem('nav_saved', JSON.stringify(saved));
-  renderSaved();
-  rebuildHistory();
-};
-
-function renderSaved() {
-  results.innerHTML = saved.length === 0
-    ? '<div class="placeholder">Noch keine Vokabeln gespeichert.<br/>Klicke auf ⭐ bei einem Suchergebnis.</div>'
-    : saved.map(s => makeCard(s.data, s.word, true)).join('');
-}
 
 // ── Search ─────────────────────────────────────────────────────────────────
 async function doSearch(word) {
@@ -442,7 +387,6 @@ searchField.addEventListener('focus', () => { if (!searchField.value.trim() && h
 // ── Init ───────────────────────────────────────────────────────────────────
 rebuildHistory();
 if (history.length) showHistory();
-else if (history.length) searchField.value = history[0];
 </script>
 </body>
 </html>
