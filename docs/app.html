@@ -101,7 +101,7 @@
     @keyframes slide{0%{width:30%;margin-left:-30%}50%{width:55%}100%{width:30%;margin-left:100%}}
 
     /* Results */
-    .results{flex:1;overflow-y:auto;display:flex;flex-direction:column;gap:.75rem;padding-right:4px}
+    .results{flex:1;overflow-y:auto;display:flex;flex-direction:column;gap:.75rem;padding-right:4px;flex-wrap:nowrap;align-content:flex-start}
     .results::-webkit-scrollbar{width:4px}
     .results::-webkit-scrollbar-thumb{background:var(--outline);border-radius:99px}
     .placeholder{
@@ -133,6 +133,15 @@
     .card-meanings .arr{color:var(--muted)}
 
     .error{color:var(--error);font-size:.9rem;padding:.5rem 0}
+
+    /* History chips */
+    .hist-chip{
+      display:inline-block;padding:.4rem .9rem;border-radius:99px;
+      background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);
+      color:var(--muted);font-size:.85rem;cursor:pointer;
+      transition:background .15s,color .15s,border-color .15s;
+    }
+    .hist-chip:hover{background:rgba(0,212,255,.1);border-color:rgba(0,212,255,.3);color:var(--cyan)}
 
     /* Status chip */
     .status-chip{
@@ -223,6 +232,17 @@ menuBtn.addEventListener('click', () => {
   sidebarOpen = !sidebarOpen;
   sidebar.classList.toggle('open', sidebarOpen);
 });
+function showHistory() {
+  if (!history.length) return;
+  results.innerHTML =
+    `<div class="results-label" style="margin-bottom:.4rem">🕒 Letzte Suchen</div>` +
+    `<div style="display:flex;flex-wrap:wrap;gap:.5rem">` +
+    history.slice(0, 10).map(w =>
+      `<div class="hist-chip" onclick="searchField.value='${escH(w)}';doSearch('${escH(w)}')">${escH(w)}</div>`
+    ).join('') +
+    `</div>`;
+}
+
 function rebuildHistory() {
   histList.innerHTML = history.slice(0,12).map(w =>
     `<div class="hist-item" data-word="${w}">🕒 ${w}</div>`
@@ -239,7 +259,8 @@ tabSearch.addEventListener('click', () => {
   currentTab = 'search';
   tabSearch.classList.add('active'); tabSaved.classList.remove('active');
   searchRow.style.display = 'flex';
-  results.innerHTML = '<div class="placeholder"><div>Warte auf Eingabe…</div></div>';
+  if (history.length) showHistory();
+  else results.innerHTML = '<div class="placeholder"><div>Warte auf Eingabe…</div></div>';
 });
 tabSaved.addEventListener('click', () => {
   currentTab = 'saved';
@@ -265,10 +286,12 @@ function parseNavigium(html) {
           const headEl = entry.querySelector('div.lemma > span');
           if (!headEl) continue;
           const artEl  = entry.querySelector('div.lemma i.wortart > span');
-          const divs   = entry.querySelectorAll(':scope > div');
-          const formen = divs.length > 1 ? divs[1].textContent.trim() : '';
-          const beds   = [...entry.querySelectorAll('ol[type="I"] > li > div.bedeutung')]
-                           .map(m => m.textContent.trim()).filter(Boolean);
+          // Direct div children (same as BeautifulSoup find_all('div', recursive=False))
+          const directDivs = [...entry.children].filter(c => c.tagName === 'DIV');
+          const formen = directDivs.length > 1 ? directDivs[1].textContent.trim() : '';
+          // .bedeutung can be nested inside li, not necessarily a direct child
+          const beds = [...entry.querySelectorAll('ol li .bedeutung')]
+                         .map(m => m.textContent.trim()).filter(Boolean);
           out.push({ head: headEl.textContent.trim(), art: artEl?.textContent.trim() || '', formen, bedeutungen: beds });
         } catch(_) {}
       }
@@ -414,10 +437,12 @@ async function doSearch(word) {
 
 searchBtn.addEventListener('click',  () => doSearch(searchField.value));
 searchField.addEventListener('keydown', e => { if (e.key === 'Enter') doSearch(searchField.value); });
+searchField.addEventListener('focus', () => { if (!searchField.value.trim() && history.length) showHistory(); });
 
 // ── Init ───────────────────────────────────────────────────────────────────
 rebuildHistory();
-if (history.length) searchField.value = history[0];
+if (history.length) showHistory();
+else if (history.length) searchField.value = history[0];
 </script>
 </body>
 </html>
