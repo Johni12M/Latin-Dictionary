@@ -1,4 +1,4 @@
-# ⚓ Navigium — Latin Dictionary
+# 🏛️ Navigium — Latin Dictionary
 
 <div align="center">
 
