@@ -188,11 +188,11 @@
     <div class="prog" id="prog"><div class="prog-inner"></div></div>
 
     <div class="results" id="results">
-      <div class="placeholder">
+      <div class="placeholder"><div>
         Warte auf Eingabe…<br/><br/>
         Tipp: Auch konjugierte oder deklinierte Formen<br/>
         wie <em>amabant</em> werden erkannt.
-      </div>
+      </div></div>
     </div>
   </div>
 </div>
@@ -239,7 +239,7 @@ tabSearch.addEventListener('click', () => {
   currentTab = 'search';
   tabSearch.classList.add('active'); tabSaved.classList.remove('active');
   searchRow.style.display = 'flex';
-  results.innerHTML = '<div class="placeholder">Warte auf Eingabe…</div>';
+  results.innerHTML = '<div class="placeholder"><div>Warte auf Eingabe…</div></div>';
 });
 tabSaved.addEventListener('click', () => {
   currentTab = 'saved';
