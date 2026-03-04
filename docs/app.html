@@ -339,7 +339,6 @@ window.copyCard = uid => {
 // ── Search ─────────────────────────────────────────────────────────────────
 async function doSearch(word) {
   word = word.trim(); if (!word) return;
-  if (currentTab !== 'search') { tabSearch.click(); }
 
   searchBtn.disabled = true;
   prog.classList.add('on');
