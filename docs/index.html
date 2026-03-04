@@ -329,13 +329,13 @@
   <h2 class="section-title">Download</h2>
   <div class="dl-box">
     <img src="icon.png" alt="Icon" style="width:64px;border-radius:14px" />
-    <div class="dl-ver">v1.0.0 · Windows 10 / 11 · 64-bit</div>
+    <div class="dl-ver">v1.1.0 · Windows 10 / 11 · 64-bit</div>
     <div class="dl-name">Navigium Lateinwörterbuch</div>
     <div class="dl-meta">Installer · ~63 MB · Kein Python erforderlich</div>
     <div class="dl-sep"></div>
-    <a class="btn btn-primary" style="width:100%;justify-content:center" href="https://github.com/Johni12M/Latin-Dictionary/releases/download/v1.0.0/Navigium_Setup_v1.0.0.exe">⬇ Installer herunterladen (.exe)</a>
-    <a class="btn btn-ghost" style="width:100%;justify-content:center" href="https://github.com/Johni12M/Latin-Dictionary/releases/download/v1.0.0/Navigium.exe">⬇ Portabel (kein Setup)</a>
-    <a class="dl-link" href="https://github.com/Johni12M/Latin-Dictionary/releases/tag/v1.0.0">Alle Releases auf GitHub ↗</a>
+    <a class="btn btn-primary" style="width:100%;justify-content:center" href="https://github.com/Johni12M/Latin-Dictionary/releases/download/v1.1.0/Navigium_Setup_v1.1.0.exe">⬇ Installer herunterladen (.exe)</a>
+    <a class="btn btn-ghost" style="width:100%;justify-content:center" href="https://github.com/Johni12M/Latin-Dictionary/releases/download/v1.1.0/Navigium.exe">⬇ Portabel (kein Setup)</a>
+    <a class="dl-link" href="https://github.com/Johni12M/Latin-Dictionary/releases/tag/v1.1.0">Alle Releases auf GitHub ↗</a>
   </div>
 </section>
 
@@ -384,16 +384,7 @@ const revealObs = new IntersectionObserver((entries) => {
 }, {threshold:.12});
 document.querySelectorAll('.feat-card').forEach(c => revealObs.observe(c));
 
-// ── Interactive App Mockup ─────────────────────────────────────────────────
-const RESULTS_DB = {
-  amare:   { head:'AMARE, AMO, AMAVI, AMATUM', art:'a-Konjugation', formen:'amare: Inf. Pras. Akt.', bedeutungen:['lieben, gern haben','sich freuen an'] },
-  bellum:  { head:'BELLUM -I, N', art:'o-Deklination', formen:'bellum: Nom. Sg., Akk. Sg.', bedeutungen:['Krieg','Kampf, Fehde'] },
-  deus:    { head:'DEUS -I, M', art:'o-Deklination', formen:'deo: Dat. Sg., Abl. Sg.', bedeutungen:['Gott (Pl. verkurzt: di = dei)','Gottheit'] },
-  vincere: { head:'VINCERE, VINCO, VICI, VICTUM', art:'kons. Konjugation', formen:'vincere: Inf. Pras. Akt.', bedeutungen:['siegen, besiegen','uberwaltigen, ubertreffen'] },
-  aqua:    { head:'AQUA -AE, F', art:'a-Deklination', formen:'aqua: Nom. Sg., Abl. Sg.', bedeutungen:['Wasser','Regen'] },
-  pax:     { head:'PAX PACIS, F', art:'kons. Deklination', formen:'pax: Nom. Sg.', bedeutungen:['Friede','Ruhe, Stille'] },
-};
-
+// ── Interactive App Mockup (live navigium.de) ──────────────────────────────
 const sidebar     = document.getElementById('appSidebar');
 const menuBtn     = document.getElementById('menuBtn');
 const historyList = document.getElementById('historyList');
@@ -407,6 +398,8 @@ const tabSaved    = document.getElementById('tabSaved');
 const searchRow   = document.getElementById('searchRow');
 
 let sidebarOpen = false, saved = [], history = [], searchTab = true;
+// cache: word -> results array (so clicking history is instant)
+const cache = {};
 
 menuBtn.addEventListener('click', () => {
   sidebarOpen = !sidebarOpen;
@@ -419,32 +412,69 @@ historyList.addEventListener('click', e => {
 });
 
 function buildHistory() {
-  historyList.innerHTML = history.slice(0,6).map(w =>
+  historyList.innerHTML = history.slice(0,8).map(w =>
     `<div class="hist-item" data-word="${w}">🕒 ${w}</div>`
   ).join('');
 }
 
+// Parse navigium.de HTML — mirrors backend.py logic
+function parseNavigium(doc) {
+  const h3s = doc.querySelectorAll('h3.ergebnis');
+  let section = null;
+  for (const h of h3s) {
+    if (h.textContent.includes('Ergebnis der Suche nach lat. Formen')) { section = h; break; }
+  }
+  if (!section) return [];
+  const results = [];
+  let el = section.nextElementSibling;
+  while (el) {
+    if (el.classList.contains('umgebend')) {
+      for (const entry of el.querySelectorAll('.innen')) {
+        try {
+          const headEl  = entry.querySelector('div.lemma > span');
+          const artEl   = entry.querySelector('div.lemma i.wortart > span');
+          const divs    = entry.querySelectorAll(':scope > div');
+          const formen  = divs.length > 1 ? divs[1].textContent.trim() : '';
+          const meanings = Array.from(entry.querySelectorAll('ol[type="I"] > li > div.bedeutung'))
+                                .map(m => m.textContent.trim()).filter(Boolean);
+          if (headEl) results.push({
+            head: headEl.textContent.trim(),
+            art:  artEl ? artEl.textContent.trim() : '',
+            formen, bedeutungen: meanings
+          });
+        } catch(_) {}
+      }
+    }
+    el = el.nextElementSibling;
+  }
+  return results;
+}
+
 function makeCard(data, word, isSaved=false) {
   const id = 'c' + Math.random().toString(36).slice(2);
-  const alreadySaved = saved.some(s=>s.word===word);
+  const alreadySaved = saved.some(s => s.word === word && s.data.head === data.head);
   const starBtn = isSaved
-    ? `<button class="card-action" onclick="deleteSaved('${word}')" style="color:var(--error)">🗑️</button>`
+    ? `<button class="card-action" onclick="deleteSaved('${word}','${data.head.replace(/'/g,'')}')" style="color:var(--error)">🗑️</button>`
     : `<button class="card-action" id="star${id}" onclick="saveWord('${word}','${id}')" style="color:${alreadySaved?'var(--cyan)':'var(--muted)'}">
          ${alreadySaved ? '✓' : '⭐'}
        </button>`;
-  return `<div class="result-card" id="${id}">
+  const safeHead = data.head.replace(/</g,'&lt;');
+  const safeArt  = data.art.replace(/</g,'&lt;');
+  const safeForm = data.formen.replace(/</g,'&lt;');
+  const meanings = data.bedeutungen.map(b=>`<span class="arrow">➔</span> ${b.replace(/</g,'&lt;')}`).join('<br/>');
+  return `<div class="result-card" id="${id}" data-word="${word}" data-head="${data.head.replace(/"/g,'&quot;')}">
     <div class="card-header">
       <div class="card-head-row">
-        <span class="card-head">${data.head}</span>
-        <span class="card-art">(${data.art})</span>
+        <span class="card-head">${safeHead}</span>
+        <span class="card-art">(${safeArt})</span>
       </div>
       <div class="card-actions">
         <button class="card-action" onclick="copyCard('${id}')">📋</button>
         ${starBtn}
       </div>
     </div>
-    <div class="card-forms">${data.formen}</div>
-    <div class="card-meaning">${data.bedeutungen.map(b=>`<span class="arrow">➔</span> ${b}`).join('<br/>')}</div>
+    <div class="card-forms">${safeForm}</div>
+    <div class="card-meaning">${meanings || '<span style="color:var(--muted)">–</span>'}</div>
   </div>`;
 }
 
@@ -453,21 +483,24 @@ window.copyCard = id => {
   const btn = c.querySelector('[onclick^="copyCard"]');
   if(btn){btn.textContent='✓';setTimeout(()=>btn.textContent='📋',1500);}
 };
-window.saveWord = (word, id) => {
-  if (saved.some(s=>s.word===word)) return;
-  const data = RESULTS_DB[word.toLowerCase()]; if(!data) return;
-  saved.push({word,data});
-  const btn = document.getElementById('star'+id);
+window.saveWord = (word, cardId) => {
+  const results = cache[word.toLowerCase()]; if(!results) return;
+  const card = document.getElementById(cardId);
+  const head = card ? card.dataset.head : null;
+  const data = results.find(r => !head || r.head === head) || results[0];
+  if (!data || saved.some(s => s.word === word && s.data.head === data.head)) return;
+  saved.push({word, data});
+  const btn = document.getElementById('star'+cardId);
   if(btn){btn.textContent='✓';btn.style.color='var(--cyan)';btn.disabled=true;}
 };
-window.deleteSaved = word => {
-  saved = saved.filter(s=>s.word!==word);
+window.deleteSaved = (word, head) => {
+  saved = saved.filter(s => !(s.word === word && s.data.head.replace(/'/g,'') === head));
   renderSaved();
 };
 function renderSaved() {
   resultsArea.innerHTML = saved.length === 0
     ? `<div class="placeholder">Noch keine Vokabeln gespeichert.<br/>Klicke auf ⭐ bei einem Ergebnis!</div>`
-    : saved.map(s=>makeCard(s.data,s.word,true)).join('');
+    : saved.map(s => makeCard(s.data, s.word, true)).join('');
 }
 
 tabSearch.addEventListener('click', () => {
@@ -483,25 +516,49 @@ tabSaved.addEventListener('click', () => {
   renderSaved();
 });
 
-function doSearch(word) {
-  const key = word.trim().toLowerCase(); if(!key) return;
-  if(!searchTab){ tabSearch.click(); }
-  searchBtn.disabled=true;
+async function doSearch(word) {
+  word = word.trim(); if (!word) return;
+  if (!searchTab) tabSearch.click();
+  searchBtn.disabled = true;
   progTrack.classList.add('running');
-  winTitle.textContent=`🔍 ${word} – Navigium`;
-  resultsArea.innerHTML='';
-  setTimeout(() => {
+  winTitle.textContent = `🔍 ${word} – Navigium`;
+  resultsArea.innerHTML = '';
+
+  const key = word.toLowerCase();
+  try {
+    let results;
+    if (cache[key]) {
+      results = cache[key];
+      await new Promise(r => setTimeout(r, 300)); // brief visual delay for UX
+    } else {
+      const target = `https://www.navigium.de/latein-woerterbuch/${encodeURIComponent(key)}?wb=gross`;
+      const resp   = await fetch(`https://api.allorigins.win/get?url=${encodeURIComponent(target)}`);
+      const json   = await resp.json();
+      const doc    = new DOMParser().parseFromString(json.contents, 'text/html');
+      results      = parseNavigium(doc);
+      cache[key]   = results;
+    }
+
     progTrack.classList.remove('running');
-    searchBtn.disabled=false;
-    winTitle.textContent='Navigium Latin Dictionary';
-    const data = RESULTS_DB[key];
-    resultsArea.innerHTML = data
-      ? `<div style="font-size:.82rem;color:var(--muted);margin-bottom:.2rem">Ergebnisse für »${word}«</div>${makeCard(data,word)}`
-      : `<div style="color:var(--error);font-size:.88rem">⚠️ Keine Treffer für „${word}" gefunden.</div>`;
-    // update history
-    history = [word, ...history.filter(h=>h!==word)].slice(0,6);
-    buildHistory();
-  }, 1100 + Math.random()*500);
+    searchBtn.disabled = false;
+    winTitle.textContent = 'Navigium Latin Dictionary';
+
+    if (results.length === 0) {
+      resultsArea.innerHTML = `<div style="color:var(--error);font-size:.88rem">⚠️ Keine Treffer für „${word}" gefunden.</div>`;
+    } else {
+      resultsArea.innerHTML =
+        `<div style="font-size:.82rem;color:var(--muted);margin-bottom:.2rem">Ergebnisse für »${word}«</div>` +
+        results.map(r => makeCard(r, word)).join('');
+    }
+  } catch(err) {
+    progTrack.classList.remove('running');
+    searchBtn.disabled = false;
+    winTitle.textContent = 'Navigium Latin Dictionary';
+    resultsArea.innerHTML = `<div style="color:var(--error);font-size:.88rem">⚠️ Verbindungsfehler – bitte erneut versuchen.</div>`;
+  }
+
+  history = [word, ...history.filter(h => h !== word)].slice(0, 8);
+  buildHistory();
 }
 
 searchBtn.addEventListener('click', () => doSearch(searchField.value));
@@ -518,11 +575,11 @@ function runDemo() {
   let i=0; searchField.value='';
   const iv = setInterval(()=>{
     searchField.value=word.slice(0,++i);
-    if(i>=word.length){ clearInterval(iv); setTimeout(()=>{doSearch(word);demoRunning=false;},350); }
+    if(i>=word.length){ clearInterval(iv); setTimeout(()=>{doSearch(word).then(()=>{demoRunning=false;});},350); }
   },90);
 }
 
-function scheduleDemo(){ demoTimer=setTimeout(()=>{runDemo();scheduleDemo();},7500); }
+function scheduleDemo(){ demoTimer=setTimeout(()=>{runDemo();scheduleDemo();},9000); }
 setTimeout(()=>{runDemo();scheduleDemo();},2000);
 searchField.addEventListener('focus', ()=>clearTimeout(demoTimer));
 searchField.addEventListener('blur',  ()=>{ clearTimeout(demoTimer); scheduleDemo(); });
