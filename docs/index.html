@@ -1,0 +1,556 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Navigium – Latin Dictionary</title>
+  <link rel="icon" href="icon.png" />
+  <style>
+    :root {
+      --bg:       #0e0f1e;
+      --surface:  #1a1b3a;
+      --cyan:     #00d4ff;
+      --gold:     #f0c060;
+      --text:     #e8eaf6;
+      --muted:    #8890b8;
+      --radius:   14px;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      font-family: 'Segoe UI', system-ui, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      overflow-x: hidden;
+    }
+
+    /* ── STARS BACKGROUND ── */
+    #stars {
+      position: fixed;
+      inset: 0;
+      z-index: 0;
+      pointer-events: none;
+    }
+    #stars canvas { width: 100%; height: 100%; }
+
+    /* ── LAYOUT ── */
+    section { position: relative; z-index: 1; }
+
+    /* ── NAV ── */
+    nav {
+      position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 1rem 2.5rem;
+      background: rgba(14,15,30,.85);
+      backdrop-filter: blur(12px);
+      border-bottom: 1px solid rgba(0,212,255,.12);
+    }
+    .nav-logo {
+      font-size: 1.3rem; font-weight: 700; letter-spacing: .05em;
+      background: linear-gradient(90deg, var(--cyan), var(--gold));
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+    }
+    nav a {
+      color: var(--muted); text-decoration: none; margin-left: 2rem;
+      font-size: .9rem; transition: color .2s;
+    }
+    nav a:hover { color: var(--cyan); }
+
+    /* ── HERO ── */
+    #hero {
+      min-height: 100vh;
+      display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+      text-align: center;
+      padding: 7rem 2rem 4rem;
+    }
+
+    .hero-icon {
+      width: 140px; height: 140px;
+      border-radius: 30px;
+      box-shadow: 0 0 60px rgba(0,212,255,.35), 0 0 120px rgba(0,212,255,.15);
+      animation: float 4s ease-in-out infinite;
+      margin-bottom: 2.5rem;
+    }
+    @keyframes float {
+      0%,100% { transform: translateY(0);   box-shadow: 0 0 60px rgba(0,212,255,.35); }
+      50%      { transform: translateY(-14px); box-shadow: 0 20px 80px rgba(0,212,255,.25); }
+    }
+
+    .hero-badge {
+      display: inline-block;
+      background: rgba(0,212,255,.1);
+      border: 1px solid rgba(0,212,255,.3);
+      color: var(--cyan);
+      border-radius: 999px;
+      padding: .35rem 1.1rem;
+      font-size: .78rem;
+      letter-spacing: .12em;
+      text-transform: uppercase;
+      margin-bottom: 1.5rem;
+      animation: fadeUp .6s ease both;
+    }
+
+    h1 {
+      font-size: clamp(2.8rem, 7vw, 5.5rem);
+      font-weight: 800;
+      line-height: 1.1;
+      letter-spacing: -.02em;
+      background: linear-gradient(135deg, #fff 30%, var(--cyan) 70%, var(--gold));
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+      animation: fadeUp .7s .1s ease both;
+      margin-bottom: 1.2rem;
+    }
+
+    .hero-sub {
+      font-size: clamp(1rem, 2.5vw, 1.3rem);
+      color: var(--muted);
+      max-width: 560px;
+      line-height: 1.7;
+      animation: fadeUp .7s .2s ease both;
+      margin-bottom: 2.8rem;
+    }
+
+    .btn-row {
+      display: flex; gap: 1rem; flex-wrap: wrap;
+      justify-content: center;
+      animation: fadeUp .7s .3s ease both;
+    }
+
+    .btn {
+      display: inline-flex; align-items: center; gap: .6rem;
+      padding: .9rem 2rem;
+      border-radius: var(--radius);
+      font-size: 1rem; font-weight: 600;
+      text-decoration: none;
+      transition: transform .2s, box-shadow .2s;
+      cursor: pointer;
+    }
+    .btn:hover { transform: translateY(-3px); }
+
+    .btn-primary {
+      background: linear-gradient(135deg, var(--cyan), #0094cc);
+      color: #000;
+      box-shadow: 0 8px 30px rgba(0,212,255,.4);
+    }
+    .btn-primary:hover { box-shadow: 0 12px 40px rgba(0,212,255,.6); }
+
+    .btn-secondary {
+      background: rgba(255,255,255,.06);
+      border: 1px solid rgba(255,255,255,.15);
+      color: var(--text);
+    }
+    .btn-secondary:hover { background: rgba(255,255,255,.1); }
+
+    /* ── LATIN QUOTE ── */
+    .quote-band {
+      padding: 3rem 2rem;
+      text-align: center;
+      border-top: 1px solid rgba(255,255,255,.06);
+      border-bottom: 1px solid rgba(255,255,255,.06);
+    }
+    .quote {
+      font-size: clamp(1.1rem, 2.5vw, 1.5rem);
+      font-style: italic;
+      color: var(--gold);
+      letter-spacing: .03em;
+    }
+    .quote-attr { color: var(--muted); font-size: .85rem; margin-top: .6rem; }
+
+    /* ── FEATURES ── */
+    #features {
+      padding: 6rem 2rem;
+      max-width: 1100px;
+      margin: 0 auto;
+    }
+    .section-label {
+      text-align: center;
+      text-transform: uppercase;
+      letter-spacing: .15em;
+      font-size: .78rem;
+      color: var(--cyan);
+      margin-bottom: .8rem;
+    }
+    .section-title {
+      text-align: center;
+      font-size: clamp(1.8rem, 4vw, 2.8rem);
+      font-weight: 700;
+      margin-bottom: 3.5rem;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+      gap: 1.5rem;
+    }
+
+    .card {
+      background: var(--surface);
+      border: 1px solid rgba(255,255,255,.07);
+      border-radius: var(--radius);
+      padding: 2rem;
+      transition: transform .3s, box-shadow .3s, border-color .3s;
+      opacity: 0;
+      transform: translateY(30px);
+    }
+    .card.visible {
+      animation: cardIn .5s ease forwards;
+    }
+    @keyframes cardIn {
+      to { opacity: 1; transform: translateY(0); }
+    }
+    .card:hover {
+      transform: translateY(-6px);
+      box-shadow: 0 16px 50px rgba(0,0,0,.4);
+      border-color: rgba(0,212,255,.25);
+    }
+
+    .card-icon {
+      font-size: 2.2rem;
+      margin-bottom: 1rem;
+      display: block;
+    }
+    .card h3 {
+      font-size: 1.1rem;
+      font-weight: 600;
+      margin-bottom: .5rem;
+      color: #fff;
+    }
+    .card p {
+      font-size: .92rem;
+      color: var(--muted);
+      line-height: 1.65;
+    }
+
+    /* ── DEMO / TERMINAL ── */
+    #demo {
+      padding: 6rem 2rem;
+      background: linear-gradient(180deg, transparent, rgba(0,212,255,.04), transparent);
+    }
+    .demo-inner {
+      max-width: 700px;
+      margin: 0 auto;
+      text-align: center;
+    }
+    .terminal {
+      background: #0a0b1a;
+      border: 1px solid rgba(0,212,255,.2);
+      border-radius: var(--radius);
+      padding: 2rem;
+      text-align: left;
+      font-family: 'Cascadia Code', 'Consolas', monospace;
+      font-size: .92rem;
+      margin-top: 2.5rem;
+      position: relative;
+      overflow: hidden;
+    }
+    .terminal::before {
+      content: '';
+      position: absolute; top: 0; left: 0; right: 0; height: 3px;
+      background: linear-gradient(90deg, var(--cyan), var(--gold), var(--cyan));
+      background-size: 200% 100%;
+      animation: shimmer 2.5s linear infinite;
+    }
+    @keyframes shimmer {
+      0%   { background-position: 200% 0; }
+      100% { background-position: -200% 0; }
+    }
+    .term-row { margin-bottom: .5rem; display: flex; gap: .8rem; }
+    .term-prompt { color: var(--cyan); }
+    .term-word   { color: var(--gold); }
+    .term-result { color: #a0f0b0; line-height: 1.6; margin-left: 1.2rem; }
+    .term-muted  { color: var(--muted); }
+    .cursor {
+      display: inline-block; width: 9px; height: 1.1em;
+      background: var(--cyan); vertical-align: text-bottom;
+      animation: blink 1s step-end infinite;
+    }
+    @keyframes blink { 50% { opacity: 0; } }
+
+    /* ── DOWNLOAD ── */
+    #download {
+      padding: 7rem 2rem;
+      text-align: center;
+    }
+    .dl-card {
+      display: inline-flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 1.2rem;
+      background: var(--surface);
+      border: 1px solid rgba(0,212,255,.2);
+      border-radius: 24px;
+      padding: 3.5rem 4rem;
+      box-shadow: 0 0 80px rgba(0,212,255,.08);
+      max-width: 500px;
+    }
+    .dl-version {
+      font-size: .8rem;
+      color: var(--muted);
+      letter-spacing: .1em;
+      text-transform: uppercase;
+    }
+    .dl-title { font-size: 1.5rem; font-weight: 700; }
+    .dl-meta  { font-size: .85rem; color: var(--muted); }
+    .dl-divider {
+      width: 100%; height: 1px;
+      background: rgba(255,255,255,.08);
+      margin: .5rem 0;
+    }
+
+    /* ── FOOTER ── */
+    footer {
+      text-align: center;
+      padding: 3rem 2rem;
+      color: var(--muted);
+      font-size: .85rem;
+      border-top: 1px solid rgba(255,255,255,.06);
+      position: relative; z-index: 1;
+    }
+    footer a { color: var(--cyan); text-decoration: none; }
+
+    /* ── ANIMATIONS ── */
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(24px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    /* ── PROGRESS BAR DEMO ── */
+    .search-demo {
+      background: rgba(255,255,255,.05);
+      border: 1px solid rgba(255,255,255,.1);
+      border-radius: 10px;
+      padding: .85rem 1.2rem;
+      display: flex; align-items: center; gap: .8rem;
+      margin: 1.5rem 0 .5rem;
+      font-size: .9rem;
+      color: var(--muted);
+    }
+    .search-icon { font-size: 1rem; }
+    .search-text { flex: 1; color: var(--gold); }
+    .progress-track {
+      height: 5px; border-radius: 999px;
+      background: rgba(0,212,255,.15);
+      overflow: hidden;
+      margin-bottom: 1.5rem;
+    }
+    .progress-bar {
+      height: 100%;
+      background: linear-gradient(90deg, transparent, var(--cyan), transparent);
+      border-radius: 999px;
+      animation: progress 1.8s ease-in-out infinite;
+    }
+    @keyframes progress {
+      0%   { width: 25%; margin-left: -25%; }
+      50%  { width: 50%; }
+      100% { width: 25%; margin-left: 100%; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- Stars -->
+<div id="stars"><canvas id="starCanvas"></canvas></div>
+
+<!-- Nav -->
+<nav>
+  <span class="nav-logo">⚓ Navigium</span>
+  <div>
+    <a href="#features">Features</a>
+    <a href="#demo">Preview</a>
+    <a href="#download">Download</a>
+    <a href="https://github.com/Johni12M/Latin-Dictionary" target="_blank">GitHub ↗</a>
+  </div>
+</nav>
+
+<!-- Hero -->
+<section id="hero">
+  <img class="hero-icon" src="icon.png" alt="Navigium Icon" />
+  <div class="hero-badge">Free &amp; Open Source · Windows</div>
+  <h1>Navigate Latin<br/>with Ease</h1>
+  <p class="hero-sub">
+    Navigium is a sleek desktop dictionary for Latin — instant word lookup,
+    declensions, conjugations, and your personal search history, all offline.
+  </p>
+  <div class="btn-row">
+    <a class="btn btn-primary" href="#download">
+      ⬇ Download for Windows
+    </a>
+    <a class="btn btn-secondary" href="https://github.com/Johni12M/Latin-Dictionary" target="_blank">
+      ★ View on GitHub
+    </a>
+  </div>
+</section>
+
+<!-- Quote -->
+<div class="quote-band">
+  <div class="quote">"Nusquam est qui ubique est."</div>
+  <div class="quote-attr">— Seneca &nbsp;·&nbsp; He who is everywhere is nowhere.</div>
+</div>
+
+<!-- Features -->
+<section id="features">
+  <div class="section-label">What you get</div>
+  <h2 class="section-title">Everything a Latin student needs</h2>
+  <div class="grid">
+    <div class="card">
+      <span class="card-icon">⚡</span>
+      <h3>Instant Lookup</h3>
+      <p>Search any Latin word and get full grammatical information in under a second — declensions, conjugations, and meanings.</p>
+    </div>
+    <div class="card">
+      <span class="card-icon">📖</span>
+      <h3>Full Grammar Info</h3>
+      <p>See the word's head form, declension or conjugation class, all forms highlighted, and German meanings.</p>
+    </div>
+    <div class="card">
+      <span class="card-icon">📜</span>
+      <h3>Search History</h3>
+      <p>Your last 50 searches are stored locally so you can quickly revisit words you've looked up before.</p>
+    </div>
+    <div class="card">
+      <span class="card-icon">⚙️</span>
+      <h3>Offline Cache</h3>
+      <p>Results are cached on your device after the first lookup — repeated searches are instant even without internet.</p>
+    </div>
+    <div class="card">
+      <span class="card-icon">🎨</span>
+      <h3>Beautiful Dark UI</h3>
+      <p>Clean, distraction-free interface with a deep indigo theme and animated search indicator built with Flet.</p>
+    </div>
+    <div class="card">
+      <span class="card-icon">📦</span>
+      <h3>Single File Exe</h3>
+      <p>No Python installation required. One 89 MB executable or a simple installer — runs on any Windows 10/11 PC.</p>
+    </div>
+  </div>
+</section>
+
+<!-- Demo -->
+<section id="demo">
+  <div class="demo-inner">
+    <div class="section-label">Live preview</div>
+    <h2 class="section-title">See it in action</h2>
+
+    <div class="search-demo">
+      <span class="search-icon">🔍</span>
+      <span class="search-text">amare</span>
+    </div>
+    <div class="progress-track">
+      <div class="progress-bar"></div>
+    </div>
+
+    <div class="terminal">
+      <div class="term-row">
+        <span class="term-prompt">›</span>
+        <span>Searching for <span class="term-word">amare</span>...</span>
+      </div>
+      <div class="term-row" style="margin-top:.8rem;">
+        <div>
+          <div class="term-result">
+            <span style="color:#fff;font-weight:600;">amare, amō, amāvī, amātum</span>
+            &nbsp;<span class="term-muted">(a-Konjugation)</span>
+          </div>
+          <div class="term-result">
+            <span class="term-muted">amare:</span> Inf. Präs. Akt.
+          </div>
+          <div class="term-result" style="margin-top:.4rem;">
+            ✦ <span style="color:#c8f0d0;">lieben, gern haben</span><br/>
+            ✦ <span style="color:#c8f0d0;">sich freuen an</span>
+          </div>
+        </div>
+      </div>
+      <div class="term-row" style="margin-top:1rem;">
+        <span class="term-prompt">›</span>
+        <span class="cursor"></span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Download -->
+<section id="download">
+  <div class="section-label">Get started</div>
+  <h2 class="section-title" style="margin-bottom:2.5rem;">Download Navigium</h2>
+  <div class="dl-card">
+    <img src="icon.png" alt="icon" style="width:72px;border-radius:16px;" />
+    <div class="dl-version">v1.0.0 · Windows 10 / 11</div>
+    <div class="dl-title">Navigium Latin Dictionary</div>
+    <div class="dl-meta">Installer · ~63 MB &nbsp;|&nbsp; No Python needed</div>
+    <div class="dl-divider"></div>
+    <a class="btn btn-primary" style="width:100%;justify-content:center;"
+       href="https://github.com/Johni12M/Latin-Dictionary/releases/download/v1.0.0/Navigium_Setup_v1.0.0.exe">
+      ⬇ Download Installer (.exe)
+    </a>
+    <a class="btn btn-secondary" style="width:100%;justify-content:center;"
+       href="https://github.com/Johni12M/Latin-Dictionary/releases/download/v1.0.0/Navigium.exe">
+      ⬇ Portable .exe (no install)
+    </a>
+    <a href="https://github.com/Johni12M/Latin-Dictionary/releases/tag/v1.0.0"
+       style="font-size:.82rem;color:var(--muted);text-decoration:none;">
+       All releases on GitHub ↗
+    </a>
+  </div>
+</section>
+
+<!-- Footer -->
+<footer>
+  <p>Made with ❤️ by <a href="https://github.com/Johni12M">Johni12M</a> · 
+     <a href="https://github.com/Johni12M/Latin-Dictionary">Source on GitHub</a> ·
+     Built with Python &amp; Flet</p>
+</footer>
+
+<script>
+  // ── Stars ──────────────────────────────────────────────
+  const canvas = document.getElementById('starCanvas');
+  const ctx = canvas.getContext('2d');
+  let stars = [];
+
+  function resize() {
+    canvas.width  = window.innerWidth;
+    canvas.height = window.innerHeight;
+  }
+  resize();
+  window.addEventListener('resize', resize);
+
+  for (let i = 0; i < 180; i++) {
+    stars.push({
+      x: Math.random(),
+      y: Math.random(),
+      r: Math.random() * 1.4 + 0.3,
+      a: Math.random(),
+      speed: Math.random() * 0.0004 + 0.0001
+    });
+  }
+
+  function drawStars() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    const t = Date.now();
+    for (const s of stars) {
+      const alpha = 0.3 + 0.7 * Math.abs(Math.sin(t * s.speed + s.a * 100));
+      ctx.beginPath();
+      ctx.arc(s.x * canvas.width, s.y * canvas.height, s.r, 0, Math.PI * 2);
+      ctx.fillStyle = `rgba(200,220,255,${alpha})`;
+      ctx.fill();
+    }
+    requestAnimationFrame(drawStars);
+  }
+  drawStars();
+
+  // ── Scroll-reveal cards ────────────────────────────────
+  const observer = new IntersectionObserver((entries) => {
+    entries.forEach((entry, i) => {
+      if (entry.isIntersecting) {
+        setTimeout(() => entry.target.classList.add('visible'), i * 100);
+        observer.unobserve(entry.target);
+      }
+    });
+  }, { threshold: 0.15 });
+
+  document.querySelectorAll('.card').forEach(c => observer.observe(c));
+</script>
+</body>
+</html>
