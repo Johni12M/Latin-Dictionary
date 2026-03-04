@@ -144,44 +144,6 @@ def main(page: ft.Page):
         visible=False,
     )
 
-    # Language selector
-    current_lang = {"code": "de"}
-
-    lang_buttons = {}
-    def make_lang_btn(code, flag, label):
-        def on_click(e, c=code):
-            current_lang["code"] = c
-            for lc, lb in lang_buttons.items():
-                lb.style = ft.ButtonStyle(
-                    bgcolor=ft.Colors.PRIMARY if lc == c else ft.Colors.TRANSPARENT,
-                    color=ft.Colors.ON_PRIMARY if lc == c else ft.Colors.OUTLINE,
-                    padding=ft.padding.symmetric(horizontal=8, vertical=4),
-                )
-            # Re-translate existing results if there are cached ones
-            last_word = app_state.get("last_word")
-            if last_word and last_word.lower() in app_state["cache"]:
-                results = app_state["cache"][last_word.lower()]
-                display_results(results, last_word, skip_history=True)
-            else:
-                page.update()
-        btn = ft.ElevatedButton(
-            f"{flag} {code.upper()}",
-            on_click=on_click,
-            style=ft.ButtonStyle(
-                bgcolor=ft.Colors.PRIMARY if code == "de" else ft.Colors.TRANSPARENT,
-                color=ft.Colors.ON_PRIMARY if code == "de" else ft.Colors.OUTLINE,
-                padding=ft.padding.symmetric(horizontal=8, vertical=4),
-            ),
-            height=34,
-        )
-        lang_buttons[code] = btn
-        return btn
-
-    lang_row = ft.Row(
-        [make_lang_btn(code, flag, label) for code, (flag, label) in backend.LANGUAGES.items()],
-        spacing=4,
-    )
-
     # Simple tab buttons for navigation
     current_tab = {"index": 0}  
     
@@ -310,19 +272,12 @@ def main(page: ft.Page):
             msg = results[0]["error"] if results else "Unbekannter Fehler."
             results_view.controls.append(ft.Text(f"⚠️ {msg}", color=ft.Colors.ERROR, size=14))
         else:
-            lang_code = current_lang["code"]
-            flag, lang_label = backend.LANGUAGES[lang_code]
             results_view.controls.append(
-                ft.Text(f"Ergebnisse für »{word}« ({flag} {lang_label})",
+                ft.Text(f"Ergebnisse für »{word}«",
                         size=16, weight=ft.FontWeight.BOLD, color=ft.Colors.OUTLINE)
             )
             for item in results:
-                # Translate meanings if not German
-                translated_item = dict(item)
-                translated_item['bedeutungen'] = backend.translate_meanings(
-                    item.get('bedeutungen', []), lang_code, word_key=f"{word}_{list(backend.LANGUAGES.keys()).index(lang_code)}"
-                )
-                results_view.controls.append(create_result_card(translated_item))
+                results_view.controls.append(create_result_card(item))
 
         app_state["search_controls"] = list(results_view.controls)
         page.update()
@@ -399,8 +354,6 @@ def main(page: ft.Page):
         padding=30,
         content=ft.Column([
             tab_row,
-            ft.Container(height=6),
-            lang_row,
             ft.Container(height=6),
             search_row,
             search_progress_bar,
