@@ -1,556 +1,531 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="de">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Navigium – Latin Dictionary</title>
+  <title>Navigium – Lateinisches Wörterbuch</title>
   <link rel="icon" href="icon.png" />
   <style>
     :root {
-      --bg:       #0e0f1e;
-      --surface:  #1a1b3a;
-      --cyan:     #00d4ff;
-      --gold:     #f0c060;
-      --text:     #e8eaf6;
-      --muted:    #8890b8;
-      --radius:   14px;
+      --bg:      #0e0f1e;
+      --surface: #1a1b3a;
+      --card:    #1e2040;
+      --cyan:    #00d4ff;
+      --cyan2:   #00b8d9;
+      --amber:   #ffc107;
+      --text:    #e8eaf6;
+      --muted:   #7986a8;
+      --error:   #ef5350;
+      --outline: #3d4570;
+      --r:       12px;
     }
+    *{box-sizing:border-box;margin:0;padding:0}
+    html{scroll-behavior:smooth}
+    body{font-family:'Segoe UI',system-ui,sans-serif;background:var(--bg);color:var(--text);overflow-x:hidden}
 
-    * { box-sizing: border-box; margin: 0; padding: 0; }
+    #starCanvas{position:fixed;inset:0;z-index:0;pointer-events:none;width:100%;height:100%}
+    section,nav,footer{position:relative;z-index:1}
 
-    html { scroll-behavior: smooth; }
+    /* NAV */
+    nav{
+      position:fixed;top:0;left:0;right:0;z-index:100;
+      display:flex;align-items:center;justify-content:space-between;
+      padding:.9rem 2.5rem;
+      background:rgba(14,15,30,.88);
+      backdrop-filter:blur(14px);
+      border-bottom:1px solid rgba(0,212,255,.1);
+    }
+    .nav-logo{
+      display:flex;align-items:center;gap:.5rem;
+      font-size:1.15rem;font-weight:700;letter-spacing:.06em;
+      background:linear-gradient(90deg,var(--cyan),#a78bfa);
+      -webkit-background-clip:text;-webkit-text-fill-color:transparent;
+    }
+    .nav-logo img{width:28px;height:28px;border-radius:6px;flex-shrink:0}
+    .nav-links a{
+      color:var(--muted);text-decoration:none;margin-left:1.8rem;font-size:.88rem;
+      transition:color .2s;
+    }
+    .nav-links a:hover{color:var(--cyan)}
 
-    body {
-      font-family: 'Segoe UI', system-ui, sans-serif;
-      background: var(--bg);
-      color: var(--text);
-      overflow-x: hidden;
+    /* HERO */
+    #hero{
+      min-height:100vh;display:flex;flex-direction:column;
+      align-items:center;justify-content:center;
+      text-align:center;padding:8rem 2rem 5rem;
     }
+    .hero-icon{
+      width:120px;height:120px;border-radius:26px;
+      box-shadow:0 0 50px rgba(0,212,255,.4),0 0 100px rgba(0,212,255,.15);
+      animation:float 4s ease-in-out infinite;margin-bottom:2rem;
+    }
+    @keyframes float{
+      0%,100%{transform:translateY(0);box-shadow:0 0 50px rgba(0,212,255,.4)}
+      50%{transform:translateY(-12px);box-shadow:0 20px 70px rgba(0,212,255,.25)}
+    }
+    .badge{
+      display:inline-block;
+      background:rgba(0,212,255,.1);border:1px solid rgba(0,212,255,.3);
+      color:var(--cyan);border-radius:999px;padding:.3rem 1rem;
+      font-size:.74rem;letter-spacing:.14em;text-transform:uppercase;
+      margin-bottom:1.4rem;animation:fadeUp .5s ease both;
+    }
+    h1{
+      font-size:clamp(2.6rem,7vw,5rem);font-weight:800;line-height:1.1;
+      letter-spacing:-.02em;
+      background:linear-gradient(135deg,#fff 25%,var(--cyan) 60%,#a78bfa);
+      -webkit-background-clip:text;-webkit-text-fill-color:transparent;
+      animation:fadeUp .6s .08s ease both;margin-bottom:1rem;
+    }
+    .hero-sub{
+      font-size:clamp(.95rem,2vw,1.2rem);color:var(--muted);
+      max-width:520px;line-height:1.75;
+      animation:fadeUp .6s .18s ease both;margin-bottom:2.5rem;
+    }
+    .btn-row{display:flex;gap:.9rem;flex-wrap:wrap;justify-content:center;animation:fadeUp .6s .28s ease both}
+    .btn{
+      display:inline-flex;align-items:center;gap:.55rem;
+      padding:.85rem 1.8rem;border-radius:var(--r);
+      font-size:.95rem;font-weight:600;text-decoration:none;
+      transition:transform .2s,box-shadow .2s;
+    }
+    .btn:hover{transform:translateY(-3px)}
+    .btn-primary{background:linear-gradient(135deg,var(--cyan),var(--cyan2));color:#000;box-shadow:0 8px 28px rgba(0,212,255,.35)}
+    .btn-primary:hover{box-shadow:0 12px 40px rgba(0,212,255,.55)}
+    .btn-ghost{background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.13);color:var(--text)}
+    .btn-ghost:hover{background:rgba(255,255,255,.1)}
 
-    /* ── STARS BACKGROUND ── */
-    #stars {
-      position: fixed;
-      inset: 0;
-      z-index: 0;
-      pointer-events: none;
+    /* QUOTE */
+    .quote-band{
+      padding:2.8rem 2rem;text-align:center;
+      border-top:1px solid rgba(255,255,255,.05);
+      border-bottom:1px solid rgba(255,255,255,.05);
     }
-    #stars canvas { width: 100%; height: 100%; }
+    .quote{font-size:clamp(1rem,2.2vw,1.35rem);font-style:italic;color:#f0c060;letter-spacing:.02em}
+    .quote-attr{color:var(--muted);font-size:.82rem;margin-top:.5rem}
 
-    /* ── LAYOUT ── */
-    section { position: relative; z-index: 1; }
+    /* MOCKUP */
+    #mockup{padding:6rem 2rem;max-width:1000px;margin:0 auto;text-align:center}
+    .section-label{text-transform:uppercase;letter-spacing:.15em;font-size:.75rem;color:var(--cyan);margin-bottom:.7rem}
+    .section-title{font-size:clamp(1.6rem,4vw,2.5rem);font-weight:700;margin-bottom:2.8rem}
 
-    /* ── NAV ── */
-    nav {
-      position: fixed; top: 0; left: 0; right: 0; z-index: 100;
-      display: flex; align-items: center; justify-content: space-between;
-      padding: 1rem 2.5rem;
-      background: rgba(14,15,30,.85);
-      backdrop-filter: blur(12px);
-      border-bottom: 1px solid rgba(0,212,255,.12);
+    .app-window{
+      background:var(--surface);border:1px solid rgba(255,255,255,.08);
+      border-radius:16px;overflow:hidden;
+      box-shadow:0 30px 100px rgba(0,0,0,.6),0 0 0 1px rgba(0,212,255,.08);
+      text-align:left;
     }
-    .nav-logo {
-      font-size: 1.3rem; font-weight: 700; letter-spacing: .05em;
-      background: linear-gradient(90deg, var(--cyan), var(--gold));
-      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+    .win-bar{
+      background:#13142a;padding:.6rem 1rem;
+      display:flex;align-items:center;gap:.5rem;
+      border-bottom:1px solid rgba(255,255,255,.06);
     }
-    nav a {
-      color: var(--muted); text-decoration: none; margin-left: 2rem;
-      font-size: .9rem; transition: color .2s;
-    }
-    nav a:hover { color: var(--cyan); }
+    .win-dot{width:12px;height:12px;border-radius:50%}
+    .win-dot.r{background:#ff5f57}.win-dot.y{background:#ffbd2e}.win-dot.g{background:#28c840}
+    .win-title{font-size:.78rem;color:var(--muted);margin:0 auto}
+    .app-body{display:flex;height:460px}
 
-    /* ── HERO ── */
-    #hero {
-      min-height: 100vh;
-      display: flex; flex-direction: column;
-      align-items: center; justify-content: center;
-      text-align: center;
-      padding: 7rem 2rem 4rem;
+    /* Sidebar */
+    .app-sidebar{
+      width:60px;background:#13142a;border-right:1px solid rgba(255,255,255,.06);
+      padding:.8rem .5rem;display:flex;flex-direction:column;gap:.6rem;
+      transition:width .35s cubic-bezier(.4,0,.2,1);overflow:hidden;flex-shrink:0;
     }
+    .app-sidebar.open{width:220px}
+    .sidebar-header{display:flex;align-items:center;justify-content:flex-end}
+    .menu-icon{
+      width:32px;height:32px;border-radius:8px;display:flex;align-items:center;
+      justify-content:center;cursor:pointer;color:var(--text);font-size:1.2rem;
+      transition:background .2s,transform .35s;flex-shrink:0;user-select:none;
+    }
+    .menu-icon:hover{background:rgba(255,255,255,.07)}
+    .app-sidebar.open .menu-icon{transform:rotate(90deg)}
+    .sidebar-body{opacity:0;transition:opacity .25s;white-space:nowrap;overflow:hidden;flex:1;padding-top:.3rem}
+    .app-sidebar.open .sidebar-body{opacity:1}
+    .sidebar-label{font-size:.68rem;letter-spacing:.12em;color:var(--muted);text-transform:uppercase;margin:.4rem 0 .4rem}
+    .hist-item{
+      display:flex;align-items:center;gap:.5rem;
+      padding:.35rem .5rem;border-radius:8px;font-size:.82rem;color:var(--muted);
+      cursor:pointer;transition:background .15s,color .15s;
+    }
+    .hist-item:hover{background:rgba(255,255,255,.06);color:var(--text)}
+    .sidebar-divider{border:none;border-top:1px solid rgba(255,255,255,.06);margin:.5rem 0}
 
-    .hero-icon {
-      width: 140px; height: 140px;
-      border-radius: 30px;
-      box-shadow: 0 0 60px rgba(0,212,255,.35), 0 0 120px rgba(0,212,255,.15);
-      animation: float 4s ease-in-out infinite;
-      margin-bottom: 2.5rem;
+    /* Main */
+    .app-main{flex:1;display:flex;flex-direction:column;padding:1.2rem 1.4rem;overflow:hidden;gap:.8rem}
+    .tabs{display:flex;gap:.5rem}
+    .tab{
+      padding:.4rem 1rem;border-radius:8px;font-size:.8rem;font-weight:600;
+      cursor:pointer;transition:background .2s,color .2s;border:none;font-family:inherit;
     }
-    @keyframes float {
-      0%,100% { transform: translateY(0);   box-shadow: 0 0 60px rgba(0,212,255,.35); }
-      50%      { transform: translateY(-14px); box-shadow: 0 20px 80px rgba(0,212,255,.25); }
+    .tab.active{background:rgba(0,212,255,.85);color:#000}
+    .tab:not(.active){background:transparent;color:var(--muted)}
+    .tab:not(.active):hover{background:rgba(255,255,255,.06);color:var(--text)}
+    .search-row{display:flex;align-items:center;gap:.6rem}
+    .search-emoji{font-size:1.2rem}
+    .search-field{
+      flex:1;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);
+      border-radius:8px;padding:.55rem .9rem;font-size:.88rem;color:var(--text);
+      font-family:inherit;outline:none;transition:border-color .2s;
     }
+    .search-field:focus{border-color:rgba(0,212,255,.5)}
+    .search-btn{
+      padding:.55rem 1.1rem;background:rgba(0,212,255,.85);color:#000;
+      border:none;border-radius:8px;font-size:.85rem;font-weight:600;
+      cursor:pointer;font-family:inherit;transition:opacity .2s;
+    }
+    .search-btn:disabled{opacity:.4;cursor:default}
+    .prog-track{height:5px;background:rgba(0,212,255,.12);border-radius:99px;overflow:hidden;opacity:0;transition:opacity .2s}
+    .prog-track.running{opacity:1}
+    .prog-bar{height:100%;background:linear-gradient(90deg,transparent,var(--cyan),transparent);border-radius:99px;animation:progAnim 1.6s ease-in-out infinite}
+    @keyframes progAnim{0%{width:30%;margin-left:-30%}50%{width:55%}100%{width:30%;margin-left:100%}}
+    .results{flex:1;overflow-y:auto;display:flex;flex-direction:column;gap:.7rem}
+    .results::-webkit-scrollbar{width:4px}
+    .results::-webkit-scrollbar-thumb{background:var(--outline);border-radius:99px}
+    .result-card{background:var(--card);border:1px solid rgba(255,255,255,.06);border-radius:10px;padding:1rem 1.1rem}
+    .card-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:.3rem}
+    .card-head-row{display:flex;align-items:baseline;gap:.5rem}
+    .card-head{font-size:1.05rem;font-weight:700;color:var(--cyan);letter-spacing:.03em}
+    .card-art{font-size:.78rem;font-style:italic;color:var(--muted)}
+    .card-actions{display:flex;gap:.2rem}
+    .card-action{
+      width:28px;height:28px;border-radius:6px;background:transparent;border:none;
+      color:var(--muted);cursor:pointer;font-size:.85rem;font-family:inherit;
+      transition:background .15s,color .15s;display:flex;align-items:center;justify-content:center;
+    }
+    .card-action:hover{background:rgba(255,255,255,.07);color:var(--text)}
+    .card-forms{font-family:'Consolas','Cascadia Code',monospace;font-size:.74rem;color:var(--muted);margin-bottom:.5rem}
+    .card-meaning{font-size:.88rem;color:var(--text);line-height:1.7}
+    .card-meaning .arrow{color:var(--muted)}
+    .placeholder{flex:1;display:flex;align-items:center;justify-content:center;color:var(--muted);font-size:.88rem;text-align:center;line-height:1.8;padding:2rem}
 
-    .hero-badge {
-      display: inline-block;
-      background: rgba(0,212,255,.1);
-      border: 1px solid rgba(0,212,255,.3);
-      color: var(--cyan);
-      border-radius: 999px;
-      padding: .35rem 1.1rem;
-      font-size: .78rem;
-      letter-spacing: .12em;
-      text-transform: uppercase;
-      margin-bottom: 1.5rem;
-      animation: fadeUp .6s ease both;
+    /* FEATURES */
+    #features{padding:6rem 2rem;max-width:1000px;margin:0 auto}
+    .feat-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:1.2rem}
+    .feat-card{
+      background:var(--surface);border:1px solid rgba(255,255,255,.06);
+      border-radius:var(--r);padding:1.6rem;
+      opacity:0;transform:translateY(24px);
+      transition:transform .3s,box-shadow .3s,border-color .3s;
     }
+    .feat-card.visible{animation:cardIn .45s ease forwards}
+    @keyframes cardIn{to{opacity:1;transform:translateY(0)}}
+    .feat-card:hover{transform:translateY(-5px);box-shadow:0 12px 40px rgba(0,0,0,.4);border-color:rgba(0,212,255,.2)}
+    .feat-icon{font-size:1.9rem;margin-bottom:.9rem;display:block}
+    .feat-card h3{font-size:1rem;font-weight:600;margin-bottom:.4rem}
+    .feat-card p{font-size:.85rem;color:var(--muted);line-height:1.65}
 
-    h1 {
-      font-size: clamp(2.8rem, 7vw, 5.5rem);
-      font-weight: 800;
-      line-height: 1.1;
-      letter-spacing: -.02em;
-      background: linear-gradient(135deg, #fff 30%, var(--cyan) 70%, var(--gold));
-      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
-      animation: fadeUp .7s .1s ease both;
-      margin-bottom: 1.2rem;
+    /* DOWNLOAD */
+    #download{padding:7rem 2rem;text-align:center}
+    .dl-box{
+      display:inline-flex;flex-direction:column;align-items:center;gap:1rem;
+      background:var(--surface);border:1px solid rgba(0,212,255,.18);
+      border-radius:20px;padding:3rem 3.5rem;
+      box-shadow:0 0 80px rgba(0,212,255,.07);max-width:460px;width:100%;
     }
+    .dl-ver{font-size:.75rem;color:var(--muted);letter-spacing:.1em;text-transform:uppercase}
+    .dl-name{font-size:1.4rem;font-weight:700}
+    .dl-meta{font-size:.82rem;color:var(--muted)}
+    .dl-sep{width:100%;height:1px;background:rgba(255,255,255,.07);margin:.3rem 0}
+    .dl-link{font-size:.8rem;color:var(--muted);text-decoration:none;transition:color .2s}
+    .dl-link:hover{color:var(--cyan)}
 
-    .hero-sub {
-      font-size: clamp(1rem, 2.5vw, 1.3rem);
-      color: var(--muted);
-      max-width: 560px;
-      line-height: 1.7;
-      animation: fadeUp .7s .2s ease both;
-      margin-bottom: 2.8rem;
-    }
-
-    .btn-row {
-      display: flex; gap: 1rem; flex-wrap: wrap;
-      justify-content: center;
-      animation: fadeUp .7s .3s ease both;
-    }
-
-    .btn {
-      display: inline-flex; align-items: center; gap: .6rem;
-      padding: .9rem 2rem;
-      border-radius: var(--radius);
-      font-size: 1rem; font-weight: 600;
-      text-decoration: none;
-      transition: transform .2s, box-shadow .2s;
-      cursor: pointer;
-    }
-    .btn:hover { transform: translateY(-3px); }
-
-    .btn-primary {
-      background: linear-gradient(135deg, var(--cyan), #0094cc);
-      color: #000;
-      box-shadow: 0 8px 30px rgba(0,212,255,.4);
-    }
-    .btn-primary:hover { box-shadow: 0 12px 40px rgba(0,212,255,.6); }
-
-    .btn-secondary {
-      background: rgba(255,255,255,.06);
-      border: 1px solid rgba(255,255,255,.15);
-      color: var(--text);
-    }
-    .btn-secondary:hover { background: rgba(255,255,255,.1); }
-
-    /* ── LATIN QUOTE ── */
-    .quote-band {
-      padding: 3rem 2rem;
-      text-align: center;
-      border-top: 1px solid rgba(255,255,255,.06);
-      border-bottom: 1px solid rgba(255,255,255,.06);
-    }
-    .quote {
-      font-size: clamp(1.1rem, 2.5vw, 1.5rem);
-      font-style: italic;
-      color: var(--gold);
-      letter-spacing: .03em;
-    }
-    .quote-attr { color: var(--muted); font-size: .85rem; margin-top: .6rem; }
-
-    /* ── FEATURES ── */
-    #features {
-      padding: 6rem 2rem;
-      max-width: 1100px;
-      margin: 0 auto;
-    }
-    .section-label {
-      text-align: center;
-      text-transform: uppercase;
-      letter-spacing: .15em;
-      font-size: .78rem;
-      color: var(--cyan);
-      margin-bottom: .8rem;
-    }
-    .section-title {
-      text-align: center;
-      font-size: clamp(1.8rem, 4vw, 2.8rem);
-      font-weight: 700;
-      margin-bottom: 3.5rem;
-    }
-
-    .grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
-      gap: 1.5rem;
-    }
-
-    .card {
-      background: var(--surface);
-      border: 1px solid rgba(255,255,255,.07);
-      border-radius: var(--radius);
-      padding: 2rem;
-      transition: transform .3s, box-shadow .3s, border-color .3s;
-      opacity: 0;
-      transform: translateY(30px);
-    }
-    .card.visible {
-      animation: cardIn .5s ease forwards;
-    }
-    @keyframes cardIn {
-      to { opacity: 1; transform: translateY(0); }
-    }
-    .card:hover {
-      transform: translateY(-6px);
-      box-shadow: 0 16px 50px rgba(0,0,0,.4);
-      border-color: rgba(0,212,255,.25);
-    }
-
-    .card-icon {
-      font-size: 2.2rem;
-      margin-bottom: 1rem;
-      display: block;
-    }
-    .card h3 {
-      font-size: 1.1rem;
-      font-weight: 600;
-      margin-bottom: .5rem;
-      color: #fff;
-    }
-    .card p {
-      font-size: .92rem;
-      color: var(--muted);
-      line-height: 1.65;
-    }
-
-    /* ── DEMO / TERMINAL ── */
-    #demo {
-      padding: 6rem 2rem;
-      background: linear-gradient(180deg, transparent, rgba(0,212,255,.04), transparent);
-    }
-    .demo-inner {
-      max-width: 700px;
-      margin: 0 auto;
-      text-align: center;
-    }
-    .terminal {
-      background: #0a0b1a;
-      border: 1px solid rgba(0,212,255,.2);
-      border-radius: var(--radius);
-      padding: 2rem;
-      text-align: left;
-      font-family: 'Cascadia Code', 'Consolas', monospace;
-      font-size: .92rem;
-      margin-top: 2.5rem;
-      position: relative;
-      overflow: hidden;
-    }
-    .terminal::before {
-      content: '';
-      position: absolute; top: 0; left: 0; right: 0; height: 3px;
-      background: linear-gradient(90deg, var(--cyan), var(--gold), var(--cyan));
-      background-size: 200% 100%;
-      animation: shimmer 2.5s linear infinite;
-    }
-    @keyframes shimmer {
-      0%   { background-position: 200% 0; }
-      100% { background-position: -200% 0; }
-    }
-    .term-row { margin-bottom: .5rem; display: flex; gap: .8rem; }
-    .term-prompt { color: var(--cyan); }
-    .term-word   { color: var(--gold); }
-    .term-result { color: #a0f0b0; line-height: 1.6; margin-left: 1.2rem; }
-    .term-muted  { color: var(--muted); }
-    .cursor {
-      display: inline-block; width: 9px; height: 1.1em;
-      background: var(--cyan); vertical-align: text-bottom;
-      animation: blink 1s step-end infinite;
-    }
-    @keyframes blink { 50% { opacity: 0; } }
-
-    /* ── DOWNLOAD ── */
-    #download {
-      padding: 7rem 2rem;
-      text-align: center;
-    }
-    .dl-card {
-      display: inline-flex;
-      flex-direction: column;
-      align-items: center;
-      gap: 1.2rem;
-      background: var(--surface);
-      border: 1px solid rgba(0,212,255,.2);
-      border-radius: 24px;
-      padding: 3.5rem 4rem;
-      box-shadow: 0 0 80px rgba(0,212,255,.08);
-      max-width: 500px;
-    }
-    .dl-version {
-      font-size: .8rem;
-      color: var(--muted);
-      letter-spacing: .1em;
-      text-transform: uppercase;
-    }
-    .dl-title { font-size: 1.5rem; font-weight: 700; }
-    .dl-meta  { font-size: .85rem; color: var(--muted); }
-    .dl-divider {
-      width: 100%; height: 1px;
-      background: rgba(255,255,255,.08);
-      margin: .5rem 0;
-    }
-
-    /* ── FOOTER ── */
-    footer {
-      text-align: center;
-      padding: 3rem 2rem;
-      color: var(--muted);
-      font-size: .85rem;
-      border-top: 1px solid rgba(255,255,255,.06);
-      position: relative; z-index: 1;
-    }
-    footer a { color: var(--cyan); text-decoration: none; }
-
-    /* ── ANIMATIONS ── */
-    @keyframes fadeUp {
-      from { opacity: 0; transform: translateY(24px); }
-      to   { opacity: 1; transform: translateY(0); }
-    }
-
-    /* ── PROGRESS BAR DEMO ── */
-    .search-demo {
-      background: rgba(255,255,255,.05);
-      border: 1px solid rgba(255,255,255,.1);
-      border-radius: 10px;
-      padding: .85rem 1.2rem;
-      display: flex; align-items: center; gap: .8rem;
-      margin: 1.5rem 0 .5rem;
-      font-size: .9rem;
-      color: var(--muted);
-    }
-    .search-icon { font-size: 1rem; }
-    .search-text { flex: 1; color: var(--gold); }
-    .progress-track {
-      height: 5px; border-radius: 999px;
-      background: rgba(0,212,255,.15);
-      overflow: hidden;
-      margin-bottom: 1.5rem;
-    }
-    .progress-bar {
-      height: 100%;
-      background: linear-gradient(90deg, transparent, var(--cyan), transparent);
-      border-radius: 999px;
-      animation: progress 1.8s ease-in-out infinite;
-    }
-    @keyframes progress {
-      0%   { width: 25%; margin-left: -25%; }
-      50%  { width: 50%; }
-      100% { width: 25%; margin-left: 100%; }
-    }
+    footer{text-align:center;padding:2.5rem 2rem;color:var(--muted);font-size:.82rem;border-top:1px solid rgba(255,255,255,.05)}
+    footer a{color:var(--cyan);text-decoration:none}
+    @keyframes fadeUp{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:translateY(0)}}
   </style>
 </head>
 <body>
 
-<!-- Stars -->
-<div id="stars"><canvas id="starCanvas"></canvas></div>
+<canvas id="starCanvas"></canvas>
 
-<!-- Nav -->
 <nav>
-  <span class="nav-logo">⚓ Navigium</span>
-  <div>
+  <div class="nav-logo">
+    <img src="icon.png" alt="Navigium" />
+    Navigium
+  </div>
+  <div class="nav-links">
+    <a href="#mockup">Vorschau</a>
     <a href="#features">Features</a>
-    <a href="#demo">Preview</a>
     <a href="#download">Download</a>
     <a href="https://github.com/Johni12M/Latin-Dictionary" target="_blank">GitHub ↗</a>
   </div>
 </nav>
 
-<!-- Hero -->
 <section id="hero">
-  <img class="hero-icon" src="icon.png" alt="Navigium Icon" />
-  <div class="hero-badge">Free &amp; Open Source · Windows</div>
-  <h1>Navigate Latin<br/>with Ease</h1>
+  <img class="hero-icon" src="icon.png" alt="Navigium" />
+  <div class="badge">Kostenlos · Open Source · Windows</div>
+  <h1>Latein nachschlagen,<br/>leicht gemacht</h1>
   <p class="hero-sub">
-    Navigium is a sleek desktop dictionary for Latin — instant word lookup,
-    declensions, conjugations, and your personal search history, all offline.
+    Navigium ist ein schlankes Desktop-Wörterbuch für Latein.
+    Gib eine beliebige Form ein — dekliniert, konjugiert, egal — und erhalte
+    sofort Grundform, Grammatik und Bedeutung auf Deutsch.
   </p>
   <div class="btn-row">
-    <a class="btn btn-primary" href="#download">
-      ⬇ Download for Windows
-    </a>
-    <a class="btn btn-secondary" href="https://github.com/Johni12M/Latin-Dictionary" target="_blank">
-      ★ View on GitHub
-    </a>
+    <a class="btn btn-primary" href="#download">⬇ Jetzt herunterladen</a>
+    <a class="btn btn-ghost" href="https://github.com/Johni12M/Latin-Dictionary" target="_blank">★ GitHub</a>
   </div>
 </section>
 
-<!-- Quote -->
 <div class="quote-band">
-  <div class="quote">"Nusquam est qui ubique est."</div>
-  <div class="quote-attr">— Seneca &nbsp;·&nbsp; He who is everywhere is nowhere.</div>
+  <div class="quote">"Dum spiro, spero."</div>
+  <div class="quote-attr">— Cicero &nbsp;·&nbsp; Solange ich atme, hoffe ich.</div>
 </div>
 
-<!-- Features -->
-<section id="features">
-  <div class="section-label">What you get</div>
-  <h2 class="section-title">Everything a Latin student needs</h2>
-  <div class="grid">
-    <div class="card">
-      <span class="card-icon">⚡</span>
-      <h3>Instant Lookup</h3>
-      <p>Search any Latin word and get full grammatical information in under a second — declensions, conjugations, and meanings.</p>
-    </div>
-    <div class="card">
-      <span class="card-icon">📖</span>
-      <h3>Full Grammar Info</h3>
-      <p>See the word's head form, declension or conjugation class, all forms highlighted, and German meanings.</p>
-    </div>
-    <div class="card">
-      <span class="card-icon">📜</span>
-      <h3>Search History</h3>
-      <p>Your last 50 searches are stored locally so you can quickly revisit words you've looked up before.</p>
-    </div>
-    <div class="card">
-      <span class="card-icon">⚙️</span>
-      <h3>Offline Cache</h3>
-      <p>Results are cached on your device after the first lookup — repeated searches are instant even without internet.</p>
-    </div>
-    <div class="card">
-      <span class="card-icon">🎨</span>
-      <h3>Beautiful Dark UI</h3>
-      <p>Clean, distraction-free interface with a deep indigo theme and animated search indicator built with Flet.</p>
-    </div>
-    <div class="card">
-      <span class="card-icon">📦</span>
-      <h3>Single File Exe</h3>
-      <p>No Python installation required. One 89 MB executable or a simple installer — runs on any Windows 10/11 PC.</p>
-    </div>
-  </div>
-</section>
+<section id="mockup">
+  <div class="section-label">Live-Vorschau</div>
+  <h2 class="section-title">So sieht die App aus</h2>
 
-<!-- Demo -->
-<section id="demo">
-  <div class="demo-inner">
-    <div class="section-label">Live preview</div>
-    <h2 class="section-title">See it in action</h2>
-
-    <div class="search-demo">
-      <span class="search-icon">🔍</span>
-      <span class="search-text">amare</span>
+  <div class="app-window">
+    <div class="win-bar">
+      <div class="win-dot r"></div><div class="win-dot y"></div><div class="win-dot g"></div>
+      <span class="win-title" id="winTitle">Navigium Latin Dictionary</span>
     </div>
-    <div class="progress-track">
-      <div class="progress-bar"></div>
-    </div>
-
-    <div class="terminal">
-      <div class="term-row">
-        <span class="term-prompt">›</span>
-        <span>Searching for <span class="term-word">amare</span>...</span>
-      </div>
-      <div class="term-row" style="margin-top:.8rem;">
-        <div>
-          <div class="term-result">
-            <span style="color:#fff;font-weight:600;">amare, amō, amāvī, amātum</span>
-            &nbsp;<span class="term-muted">(a-Konjugation)</span>
-          </div>
-          <div class="term-result">
-            <span class="term-muted">amare:</span> Inf. Präs. Akt.
-          </div>
-          <div class="term-result" style="margin-top:.4rem;">
-            ✦ <span style="color:#c8f0d0;">lieben, gern haben</span><br/>
-            ✦ <span style="color:#c8f0d0;">sich freuen an</span>
-          </div>
+    <div class="app-body">
+      <div class="app-sidebar" id="appSidebar">
+        <div class="sidebar-header">
+          <div class="menu-icon" id="menuBtn">☰</div>
+        </div>
+        <div class="sidebar-body">
+          <div class="sidebar-label">Letzte Suchen</div>
+          <div id="historyList"></div>
+          <hr class="sidebar-divider" />
         </div>
       </div>
-      <div class="term-row" style="margin-top:1rem;">
-        <span class="term-prompt">›</span>
-        <span class="cursor"></span>
+      <div class="app-main">
+        <div class="tabs">
+          <button class="tab active" id="tabSearch">Latein ➔ Deutsch</button>
+          <button class="tab" id="tabSaved">Vokabelheft (Gespeichert)</button>
+        </div>
+        <div class="search-row" id="searchRow">
+          <span class="search-emoji">🔍</span>
+          <input class="search-field" id="searchField" placeholder="Lateinisches Wort oder Form eingeben..." />
+          <button class="search-btn" id="searchBtn">Übersetzen</button>
+        </div>
+        <div class="prog-track" id="progTrack"><div class="prog-bar"></div></div>
+        <div class="results" id="resultsArea">
+          <div class="placeholder">Warte auf Eingabe…<br/><br/>Tipp: Du kannst auch konjugierte oder deklinierte<br/>Formen wie <em>amabant</em> eingeben.</div>
+        </div>
       </div>
     </div>
   </div>
 </section>
 
-<!-- Download -->
-<section id="download">
-  <div class="section-label">Get started</div>
-  <h2 class="section-title" style="margin-bottom:2.5rem;">Download Navigium</h2>
-  <div class="dl-card">
-    <img src="icon.png" alt="icon" style="width:72px;border-radius:16px;" />
-    <div class="dl-version">v1.0.0 · Windows 10 / 11</div>
-    <div class="dl-title">Navigium Latin Dictionary</div>
-    <div class="dl-meta">Installer · ~63 MB &nbsp;|&nbsp; No Python needed</div>
-    <div class="dl-divider"></div>
-    <a class="btn btn-primary" style="width:100%;justify-content:center;"
-       href="https://github.com/Johni12M/Latin-Dictionary/releases/download/v1.0.0/Navigium_Setup_v1.0.0.exe">
-      ⬇ Download Installer (.exe)
-    </a>
-    <a class="btn btn-secondary" style="width:100%;justify-content:center;"
-       href="https://github.com/Johni12M/Latin-Dictionary/releases/download/v1.0.0/Navigium.exe">
-      ⬇ Portable .exe (no install)
-    </a>
-    <a href="https://github.com/Johni12M/Latin-Dictionary/releases/tag/v1.0.0"
-       style="font-size:.82rem;color:var(--muted);text-decoration:none;">
-       All releases on GitHub ↗
-    </a>
+<section id="features">
+  <div class="section-label">Was du bekommst</div>
+  <h2 class="section-title" style="text-align:center">Alles, was Lateinschüler brauchen</h2>
+  <div class="feat-grid">
+    <div class="feat-card"><span class="feat-icon">⚡</span><h3>Jede Form erkannt</h3><p>Gib deklinierte oder konjugierte Formen ein — z.B. <em>amabant</em> — und Navigium findet die Grundform und Grammatik automatisch.</p></div>
+    <div class="feat-card"><span class="feat-icon">📖</span><h3>Vollständige Grammatikinfo</h3><p>Grundform, Deklinationsklasse bzw. Konjugation, die erkannte Form und alle deutschen Bedeutungen — alles auf einen Blick.</p></div>
+    <div class="feat-card"><span class="feat-icon">📜</span><h3>Verlauf &amp; Sidebar</h3><p>Die letzten 50 Suchen werden lokal gespeichert. Öffne die Sidebar mit dem Menü-Button und klicke eine Suche erneut an.</p></div>
+    <div class="feat-card"><span class="feat-icon">⭐</span><h3>Vokabelheft</h3><p>Speichere Vokabeln mit dem Stern-Button und greife im Tab „Vokabelheft" jederzeit auf deine Sammlung zu oder lösche Einträge.</p></div>
+    <div class="feat-card"><span class="feat-icon">⚙️</span><h3>Offline-Cache</h3><p>Nach der ersten Suche werden Ergebnisse lokal gespeichert — wiederholte Suchen sind sofort verfügbar, ohne Internetverbindung.</p></div>
+    <div class="feat-card"><span class="feat-icon">📦</span><h3>Kein Setup nötig</h3><p>Einfach die <code>.exe</code> starten — kein Python, keine weiteren Abhängigkeiten. Läuft auf jedem Windows 10/11 PC direkt.</p></div>
   </div>
 </section>
 
-<!-- Footer -->
+<section id="download">
+  <div class="section-label">Loslegen</div>
+  <h2 class="section-title">Download</h2>
+  <div class="dl-box">
+    <img src="icon.png" alt="Icon" style="width:64px;border-radius:14px" />
+    <div class="dl-ver">v1.0.0 · Windows 10 / 11 · 64-bit</div>
+    <div class="dl-name">Navigium Lateinwörterbuch</div>
+    <div class="dl-meta">Installer · ~63 MB · Kein Python erforderlich</div>
+    <div class="dl-sep"></div>
+    <a class="btn btn-primary" style="width:100%;justify-content:center" href="https://github.com/Johni12M/Latin-Dictionary/releases/download/v1.0.0/Navigium_Setup_v1.0.0.exe">⬇ Installer herunterladen (.exe)</a>
+    <a class="btn btn-ghost" style="width:100%;justify-content:center" href="https://github.com/Johni12M/Latin-Dictionary/releases/download/v1.0.0/Navigium.exe">⬇ Portabel (kein Setup)</a>
+    <a class="dl-link" href="https://github.com/Johni12M/Latin-Dictionary/releases/tag/v1.0.0">Alle Releases auf GitHub ↗</a>
+  </div>
+</section>
+
 <footer>
-  <p>Made with ❤️ by <a href="https://github.com/Johni12M">Johni12M</a> · 
-     <a href="https://github.com/Johni12M/Latin-Dictionary">Source on GitHub</a> ·
-     Built with Python &amp; Flet</p>
+  Erstellt mit ❤️ von <a href="https://github.com/Johni12M">Johni12M</a> ·
+  Quelle: <a href="https://www.navigium.de" target="_blank">navigium.de</a> ·
+  <a href="https://github.com/Johni12M/Latin-Dictionary">Open Source auf GitHub</a>
 </footer>
 
 <script>
-  // ── Stars ──────────────────────────────────────────────
-  const canvas = document.getElementById('starCanvas');
-  const ctx = canvas.getContext('2d');
-  let stars = [];
-
-  function resize() {
-    canvas.width  = window.innerWidth;
-    canvas.height = window.innerHeight;
+// ── Stars ──────────────────────────────────────────────────────────────────
+const canvas = document.getElementById('starCanvas');
+const ctx = canvas.getContext('2d');
+let W, H, stars = [];
+function initStars() {
+  W = canvas.width  = window.innerWidth;
+  H = canvas.height = window.innerHeight;
+  stars = Array.from({length:200}, () => ({
+    x:Math.random()*W, y:Math.random()*H,
+    r:Math.random()*1.3+.2,
+    phase:Math.random()*Math.PI*2,
+    speed:Math.random()*.0006+.0002
+  }));
+}
+initStars();
+window.addEventListener('resize', initStars);
+(function tick() {
+  ctx.clearRect(0,0,W,H);
+  const t = performance.now();
+  for (const s of stars) {
+    const a = .2 + .65*(.5+.5*Math.sin(t*s.speed+s.phase));
+    ctx.beginPath(); ctx.arc(s.x,s.y,s.r,0,Math.PI*2);
+    ctx.fillStyle=`rgba(190,210,255,${a})`; ctx.fill();
   }
-  resize();
-  window.addEventListener('resize', resize);
+  requestAnimationFrame(tick);
+})();
 
-  for (let i = 0; i < 180; i++) {
-    stars.push({
-      x: Math.random(),
-      y: Math.random(),
-      r: Math.random() * 1.4 + 0.3,
-      a: Math.random(),
-      speed: Math.random() * 0.0004 + 0.0001
-    });
-  }
-
-  function drawStars() {
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-    const t = Date.now();
-    for (const s of stars) {
-      const alpha = 0.3 + 0.7 * Math.abs(Math.sin(t * s.speed + s.a * 100));
-      ctx.beginPath();
-      ctx.arc(s.x * canvas.width, s.y * canvas.height, s.r, 0, Math.PI * 2);
-      ctx.fillStyle = `rgba(200,220,255,${alpha})`;
-      ctx.fill();
+// ── Scroll-reveal ──────────────────────────────────────────────────────────
+const revealObs = new IntersectionObserver((entries) => {
+  entries.forEach((e, i) => {
+    if (e.isIntersecting) {
+      setTimeout(() => e.target.classList.add('visible'), i * 90);
+      revealObs.unobserve(e.target);
     }
-    requestAnimationFrame(drawStars);
-  }
-  drawStars();
+  });
+}, {threshold:.12});
+document.querySelectorAll('.feat-card').forEach(c => revealObs.observe(c));
 
-  // ── Scroll-reveal cards ────────────────────────────────
-  const observer = new IntersectionObserver((entries) => {
-    entries.forEach((entry, i) => {
-      if (entry.isIntersecting) {
-        setTimeout(() => entry.target.classList.add('visible'), i * 100);
-        observer.unobserve(entry.target);
-      }
-    });
-  }, { threshold: 0.15 });
+// ── Interactive App Mockup ─────────────────────────────────────────────────
+const RESULTS_DB = {
+  amare:   { head:'AMARE, AMO, AMAVI, AMATUM', art:'a-Konjugation', formen:'amare: Inf. Pras. Akt.', bedeutungen:['lieben, gern haben','sich freuen an'] },
+  bellum:  { head:'BELLUM -I, N', art:'o-Deklination', formen:'bellum: Nom. Sg., Akk. Sg.', bedeutungen:['Krieg','Kampf, Fehde'] },
+  deus:    { head:'DEUS -I, M', art:'o-Deklination', formen:'deo: Dat. Sg., Abl. Sg.', bedeutungen:['Gott (Pl. verkurzt: di = dei)','Gottheit'] },
+  vincere: { head:'VINCERE, VINCO, VICI, VICTUM', art:'kons. Konjugation', formen:'vincere: Inf. Pras. Akt.', bedeutungen:['siegen, besiegen','uberwaltigen, ubertreffen'] },
+  aqua:    { head:'AQUA -AE, F', art:'a-Deklination', formen:'aqua: Nom. Sg., Abl. Sg.', bedeutungen:['Wasser','Regen'] },
+  pax:     { head:'PAX PACIS, F', art:'kons. Deklination', formen:'pax: Nom. Sg.', bedeutungen:['Friede','Ruhe, Stille'] },
+};
 
-  document.querySelectorAll('.card').forEach(c => observer.observe(c));
+const sidebar     = document.getElementById('appSidebar');
+const menuBtn     = document.getElementById('menuBtn');
+const historyList = document.getElementById('historyList');
+const searchField = document.getElementById('searchField');
+const searchBtn   = document.getElementById('searchBtn');
+const progTrack   = document.getElementById('progTrack');
+const resultsArea = document.getElementById('resultsArea');
+const winTitle    = document.getElementById('winTitle');
+const tabSearch   = document.getElementById('tabSearch');
+const tabSaved    = document.getElementById('tabSaved');
+const searchRow   = document.getElementById('searchRow');
+
+let sidebarOpen = false, saved = [], history = [], searchTab = true;
+
+menuBtn.addEventListener('click', () => {
+  sidebarOpen = !sidebarOpen;
+  sidebar.classList.toggle('open', sidebarOpen);
+});
+
+historyList.addEventListener('click', e => {
+  const item = e.target.closest('[data-word]');
+  if (item) { searchField.value = item.dataset.word; doSearch(item.dataset.word); }
+});
+
+function buildHistory() {
+  historyList.innerHTML = history.slice(0,6).map(w =>
+    `<div class="hist-item" data-word="${w}">🕒 ${w}</div>`
+  ).join('');
+}
+
+function makeCard(data, word, isSaved=false) {
+  const id = 'c' + Math.random().toString(36).slice(2);
+  const alreadySaved = saved.some(s=>s.word===word);
+  const starBtn = isSaved
+    ? `<button class="card-action" onclick="deleteSaved('${word}')" style="color:var(--error)">🗑️</button>`
+    : `<button class="card-action" id="star${id}" onclick="saveWord('${word}','${id}')" style="color:${alreadySaved?'var(--cyan)':'var(--muted)'}">
+         ${alreadySaved ? '✓' : '⭐'}
+       </button>`;
+  return `<div class="result-card" id="${id}">
+    <div class="card-header">
+      <div class="card-head-row">
+        <span class="card-head">${data.head}</span>
+        <span class="card-art">(${data.art})</span>
+      </div>
+      <div class="card-actions">
+        <button class="card-action" onclick="copyCard('${id}')">📋</button>
+        ${starBtn}
+      </div>
+    </div>
+    <div class="card-forms">${data.formen}</div>
+    <div class="card-meaning">${data.bedeutungen.map(b=>`<span class="arrow">➔</span> ${b}`).join('<br/>')}</div>
+  </div>`;
+}
+
+window.copyCard = id => {
+  const c = document.getElementById(id); if(!c) return;
+  const btn = c.querySelector('[onclick^="copyCard"]');
+  if(btn){btn.textContent='✓';setTimeout(()=>btn.textContent='📋',1500);}
+};
+window.saveWord = (word, id) => {
+  if (saved.some(s=>s.word===word)) return;
+  const data = RESULTS_DB[word.toLowerCase()]; if(!data) return;
+  saved.push({word,data});
+  const btn = document.getElementById('star'+id);
+  if(btn){btn.textContent='✓';btn.style.color='var(--cyan)';btn.disabled=true;}
+};
+window.deleteSaved = word => {
+  saved = saved.filter(s=>s.word!==word);
+  renderSaved();
+};
+function renderSaved() {
+  resultsArea.innerHTML = saved.length === 0
+    ? `<div class="placeholder">Noch keine Vokabeln gespeichert.<br/>Klicke auf ⭐ bei einem Ergebnis!</div>`
+    : saved.map(s=>makeCard(s.data,s.word,true)).join('');
+}
+
+tabSearch.addEventListener('click', () => {
+  searchTab=true;
+  tabSearch.classList.add('active'); tabSaved.classList.remove('active');
+  searchRow.style.display='flex';
+  resultsArea.innerHTML = `<div class="placeholder">Warte auf Eingabe…<br/><br/>Tipp: Du kannst auch konjugierte oder deklinierte<br/>Formen wie <em>amabant</em> eingeben.</div>`;
+});
+tabSaved.addEventListener('click', () => {
+  searchTab=false;
+  tabSaved.classList.add('active'); tabSearch.classList.remove('active');
+  searchRow.style.display='none';
+  renderSaved();
+});
+
+function doSearch(word) {
+  const key = word.trim().toLowerCase(); if(!key) return;
+  if(!searchTab){ tabSearch.click(); }
+  searchBtn.disabled=true;
+  progTrack.classList.add('running');
+  winTitle.textContent=`🔍 ${word} – Navigium`;
+  resultsArea.innerHTML='';
+  setTimeout(() => {
+    progTrack.classList.remove('running');
+    searchBtn.disabled=false;
+    winTitle.textContent='Navigium Latin Dictionary';
+    const data = RESULTS_DB[key];
+    resultsArea.innerHTML = data
+      ? `<div style="font-size:.82rem;color:var(--muted);margin-bottom:.2rem">Ergebnisse für »${word}«</div>${makeCard(data,word)}`
+      : `<div style="color:var(--error);font-size:.88rem">⚠️ Keine Treffer für „${word}" gefunden.</div>`;
+    // update history
+    history = [word, ...history.filter(h=>h!==word)].slice(0,6);
+    buildHistory();
+  }, 1100 + Math.random()*500);
+}
+
+searchBtn.addEventListener('click', () => doSearch(searchField.value));
+searchField.addEventListener('keydown', e => { if(e.key==='Enter') doSearch(searchField.value); });
+
+// ── Auto demo ──────────────────────────────────────────────────────────────
+const demoWords = ['amare','bellum','vincere','aqua','pax','deus'];
+let demoIdx=0, demoRunning=false, demoTimer=null;
+
+function runDemo() {
+  if(demoRunning) return;
+  demoRunning=true;
+  const word = demoWords[demoIdx++ % demoWords.length];
+  let i=0; searchField.value='';
+  const iv = setInterval(()=>{
+    searchField.value=word.slice(0,++i);
+    if(i>=word.length){ clearInterval(iv); setTimeout(()=>{doSearch(word);demoRunning=false;},350); }
+  },90);
+}
+
+function scheduleDemo(){ demoTimer=setTimeout(()=>{runDemo();scheduleDemo();},7500); }
+setTimeout(()=>{runDemo();scheduleDemo();},2000);
+searchField.addEventListener('focus', ()=>clearTimeout(demoTimer));
+searchField.addEventListener('blur',  ()=>{ clearTimeout(demoTimer); scheduleDemo(); });
 </script>
 </body>
 </html>
