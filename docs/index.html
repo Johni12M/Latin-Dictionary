@@ -233,11 +233,27 @@
     footer{text-align:center;padding:2.5rem 2rem;color:var(--muted);font-size:.82rem;border-top:1px solid rgba(255,255,255,.05)}
     footer a{color:var(--cyan);text-decoration:none}
     @keyframes fadeUp{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:translateY(0)}}
+
+    /* BACK TO TOP */
+    #toTop{
+      position:fixed;bottom:2rem;right:2rem;z-index:200;
+      width:44px;height:44px;border-radius:50%;border:none;cursor:pointer;
+      background:linear-gradient(135deg,var(--cyan),var(--cyan2));
+      color:#000;font-size:1.1rem;
+      display:flex;align-items:center;justify-content:center;
+      box-shadow:0 4px 20px rgba(0,212,255,.4);
+      opacity:0;transform:translateY(12px);pointer-events:none;
+      transition:opacity .3s,transform .3s;
+    }
+    #toTop.show{opacity:1;transform:translateY(0);pointer-events:auto}
+    #toTop:hover{box-shadow:0 6px 28px rgba(0,212,255,.6);transform:translateY(-2px)}
   </style>
 </head>
 <body>
 
 <canvas id="starCanvas"></canvas>
+
+<button id="toTop" title="Nach oben" onclick="window.scrollTo({top:0,behavior:'smooth'})">↑</button>
 
 <nav>
   <div class="nav-logo">
@@ -348,6 +364,10 @@
 </footer>
 
 <script>
+// ── Back to top ────────────────────────────────────────────────────────────
+const toTop = document.getElementById('toTop');
+window.addEventListener('scroll', () => toTop.classList.toggle('show', window.scrollY > 300), {passive:true});
+
 // ── Stars ──────────────────────────────────────────────────────────────────
 const canvas = document.getElementById('starCanvas');
 const ctx = canvas.getContext('2d');
