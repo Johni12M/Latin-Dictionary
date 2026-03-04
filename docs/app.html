@@ -1,0 +1,423 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <title>Navigium – Web App</title>
+  <link rel="icon" href="icon.png"/>
+  <style>
+    :root{
+      --bg:#0e0f1e;--surface:#1a1b3a;--card:#1e2040;
+      --cyan:#00d4ff;--cyan2:#00b8d9;--amber:#ffc107;
+      --text:#e8eaf6;--muted:#7986a8;--error:#ef5350;
+      --outline:#3d4570;--r:10px;
+    }
+    *{box-sizing:border-box;margin:0;padding:0}
+    html,body{height:100%;font-family:'Segoe UI',system-ui,sans-serif;background:var(--bg);color:var(--text)}
+    body{display:flex;flex-direction:column}
+
+    /* ── Top bar ── */
+    .topbar{
+      flex-shrink:0;height:46px;background:#13142a;
+      border-bottom:1px solid rgba(255,255,255,.07);
+      display:flex;align-items:center;padding:0 1rem;gap:.8rem;
+    }
+    .topbar a{color:var(--muted);text-decoration:none;font-size:.82rem;transition:color .2s}
+    .topbar a:hover{color:var(--cyan)}
+    .topbar-logo{display:flex;align-items:center;gap:.45rem;font-weight:700;font-size:.95rem;
+      background:linear-gradient(90deg,var(--cyan),#a78bfa);
+      -webkit-background-clip:text;-webkit-text-fill-color:transparent;margin-right:.5rem}
+    .topbar-logo img{width:22px;height:22px;border-radius:5px;flex-shrink:0}
+    .topbar-sep{color:var(--outline);margin:0 .2rem}
+
+    /* ── Layout ── */
+    .layout{flex:1;display:flex;overflow:hidden}
+
+    /* ── Sidebar ── */
+    .sidebar{
+      width:56px;flex-shrink:0;background:#13142a;
+      border-right:1px solid rgba(255,255,255,.07);
+      display:flex;flex-direction:column;
+      transition:width .3s cubic-bezier(.4,0,.2,1);overflow:hidden;
+    }
+    .sidebar.open{width:220px}
+    .sidebar-hd{display:flex;align-items:center;justify-content:flex-end;padding:.7rem .6rem}
+    .menu-btn{
+      width:34px;height:34px;border-radius:8px;border:none;background:transparent;
+      color:var(--text);font-size:1.2rem;cursor:pointer;
+      display:flex;align-items:center;justify-content:center;
+      transition:background .2s,transform .3s;flex-shrink:0;
+    }
+    .menu-btn:hover{background:rgba(255,255,255,.07)}
+    .sidebar.open .menu-btn{transform:rotate(90deg)}
+    .sidebar-body{opacity:0;transition:opacity .2s;padding:0 .6rem;white-space:nowrap;overflow:hidden;flex:1}
+    .sidebar.open .sidebar-body{opacity:1}
+    .sidebar-label{font-size:.65rem;letter-spacing:.12em;color:var(--muted);text-transform:uppercase;
+      margin:.6rem 0 .3rem;padding-left:.3rem}
+    .hist-item{
+      display:flex;align-items:center;gap:.5rem;padding:.35rem .5rem;
+      border-radius:7px;font-size:.83rem;color:var(--muted);cursor:pointer;
+      transition:background .15s,color .15s;
+    }
+    .hist-item:hover{background:rgba(255,255,255,.06);color:var(--text)}
+    .sidebar-div{border:none;border-top:1px solid rgba(255,255,255,.06);margin:.6rem 0}
+
+    /* ── Main ── */
+    .main{flex:1;display:flex;flex-direction:column;overflow:hidden;padding:1.2rem 1.6rem;gap:.8rem}
+
+    /* Tabs */
+    .tabs{display:flex;gap:.5rem;flex-shrink:0}
+    .tab{
+      padding:.4rem 1.1rem;border-radius:8px;font-size:.82rem;font-weight:600;
+      border:none;font-family:inherit;cursor:pointer;transition:background .2s,color .2s;
+    }
+    .tab.active{background:rgba(0,212,255,.85);color:#000}
+    .tab:not(.active){background:transparent;color:var(--muted)}
+    .tab:not(.active):hover{background:rgba(255,255,255,.06);color:var(--text)}
+
+    /* Search */
+    .search-row{display:flex;align-items:center;gap:.6rem;flex-shrink:0}
+    .search-emoji{font-size:1.25rem}
+    .search-field{
+      flex:1;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);
+      border-radius:8px;padding:.6rem 1rem;font-size:.92rem;color:var(--text);
+      font-family:inherit;outline:none;transition:border-color .2s;
+    }
+    .search-field:focus{border-color:rgba(0,212,255,.55)}
+    .search-btn{
+      padding:.6rem 1.3rem;background:rgba(0,212,255,.85);color:#000;
+      border:none;border-radius:8px;font-size:.88rem;font-weight:600;
+      cursor:pointer;font-family:inherit;transition:opacity .2s,transform .1s;
+    }
+    .search-btn:hover{opacity:.9;transform:translateY(-1px)}
+    .search-btn:disabled{opacity:.4;cursor:default;transform:none}
+
+    /* Progress bar */
+    .prog{height:5px;background:rgba(0,212,255,.12);border-radius:99px;overflow:hidden;
+          opacity:0;transition:opacity .2s;flex-shrink:0}
+    .prog.on{opacity:1}
+    .prog-inner{height:100%;background:linear-gradient(90deg,transparent,var(--cyan),transparent);
+                border-radius:99px;animation:slide 1.5s ease-in-out infinite}
+    @keyframes slide{0%{width:30%;margin-left:-30%}50%{width:55%}100%{width:30%;margin-left:100%}}
+
+    /* Results */
+    .results{flex:1;overflow-y:auto;display:flex;flex-direction:column;gap:.75rem;padding-right:4px}
+    .results::-webkit-scrollbar{width:4px}
+    .results::-webkit-scrollbar-thumb{background:var(--outline);border-radius:99px}
+    .placeholder{
+      flex:1;display:flex;align-items:center;justify-content:center;
+      color:var(--muted);font-size:.92rem;text-align:center;line-height:1.9;
+    }
+    .results-label{font-size:.84rem;color:var(--muted)}
+
+    /* Cards */
+    .card{
+      background:var(--card);border:1px solid rgba(255,255,255,.07);
+      border-radius:var(--r);padding:1.1rem 1.2rem;
+      animation:cardIn .25s ease both;
+    }
+    @keyframes cardIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+    .card-hd{display:flex;align-items:center;justify-content:space-between;margin-bottom:.25rem}
+    .card-title{display:flex;align-items:baseline;gap:.5rem}
+    .card-head{font-size:1.05rem;font-weight:700;color:var(--cyan);letter-spacing:.02em}
+    .card-art{font-size:.78rem;font-style:italic;color:var(--muted)}
+    .card-actions{display:flex;gap:.15rem}
+    .card-btn{
+      width:30px;height:30px;border-radius:7px;background:transparent;border:none;
+      color:var(--muted);cursor:pointer;font-size:.85rem;
+      display:flex;align-items:center;justify-content:center;transition:background .15s,color .15s;
+    }
+    .card-btn:hover{background:rgba(255,255,255,.07);color:var(--text)}
+    .card-forms{font-family:'Consolas','Cascadia Code',monospace;font-size:.74rem;color:var(--muted);margin-bottom:.5rem}
+    .card-meanings{font-size:.9rem;line-height:1.8;color:var(--text)}
+    .card-meanings .arr{color:var(--muted)}
+
+    .error{color:var(--error);font-size:.9rem;padding:.5rem 0}
+
+    /* Status chip */
+    .status-chip{
+      font-size:.72rem;padding:.2rem .7rem;border-radius:99px;
+      background:rgba(0,212,255,.1);border:1px solid rgba(0,212,255,.2);
+      color:var(--cyan);letter-spacing:.08em;margin-left:auto;
+    }
+  </style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="topbar-logo">
+    <img src="icon.png" alt=""/>
+    Navigium
+  </div>
+  <span class="topbar-sep">·</span>
+  <a href="index.html">← Zurück zur Startseite</a>
+  <span class="topbar-sep">·</span>
+  <a href="https://github.com/Johni12M/Latin-Dictionary" target="_blank">GitHub ↗</a>
+  <span class="status-chip" id="statusChip">Bereit</span>
+</div>
+
+<div class="layout">
+  <!-- Sidebar -->
+  <div class="sidebar" id="sidebar">
+    <div class="sidebar-hd">
+      <button class="menu-btn" id="menuBtn">☰</button>
+    </div>
+    <div class="sidebar-body">
+      <div class="sidebar-label">Letzte Suchen</div>
+      <div id="histList"></div>
+      <hr class="sidebar-div"/>
+      <div class="sidebar-label">Gespeichert</div>
+      <div id="savedCountEl" style="font-size:.8rem;color:var(--muted);padding:.2rem .3rem">0 Vokabeln</div>
+    </div>
+  </div>
+
+  <!-- Main content -->
+  <div class="main">
+    <div class="tabs">
+      <button class="tab active" id="tabSearch">Latein ➔ Deutsch</button>
+      <button class="tab" id="tabSaved">Vokabelheft</button>
+    </div>
+
+    <div class="search-row" id="searchRow">
+      <span class="search-emoji">🔍</span>
+      <input class="search-field" id="searchField"
+             placeholder="Lateinisches Wort oder Form eingeben…" autocomplete="off" spellcheck="false"/>
+      <button class="search-btn" id="searchBtn">Übersetzen</button>
+    </div>
+
+    <div class="prog" id="prog"><div class="prog-inner"></div></div>
+
+    <div class="results" id="results">
+      <div class="placeholder">
+        Warte auf Eingabe…<br/><br/>
+        Tipp: Auch konjugierte oder deklinierte Formen<br/>
+        wie <em>amabant</em> werden erkannt.
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+const $ = id => document.getElementById(id);
+const sidebar    = $('sidebar');
+const menuBtn    = $('menuBtn');
+const histList   = $('histList');
+const savedCount = $('savedCountEl');
+const searchField= $('searchField');
+const searchBtn  = $('searchBtn');
+const prog       = $('prog');
+const results    = $('results');
+const statusChip = $('statusChip');
+const tabSearch  = $('tabSearch');
+const tabSaved   = $('tabSaved');
+const searchRow  = $('searchRow');
+
+let sidebarOpen = false;
+let currentTab  = 'search';  // 'search' | 'saved'
+let cache       = {};         // word -> results[]
+let history     = JSON.parse(localStorage.getItem('nav_history') || '[]');
+let saved       = JSON.parse(localStorage.getItem('nav_saved')   || '[]');
+
+// ── Sidebar ────────────────────────────────────────────────────────────────
+menuBtn.addEventListener('click', () => {
+  sidebarOpen = !sidebarOpen;
+  sidebar.classList.toggle('open', sidebarOpen);
+});
+function rebuildHistory() {
+  histList.innerHTML = history.slice(0,12).map(w =>
+    `<div class="hist-item" data-word="${w}">🕒 ${w}</div>`
+  ).join('');
+  savedCount.textContent = saved.length + ' Vokabeln';
+}
+histList.addEventListener('click', e => {
+  const item = e.target.closest('[data-word]');
+  if (item) { searchField.value = item.dataset.word; doSearch(item.dataset.word); }
+});
+
+// ── Tabs ───────────────────────────────────────────────────────────────────
+tabSearch.addEventListener('click', () => {
+  currentTab = 'search';
+  tabSearch.classList.add('active'); tabSaved.classList.remove('active');
+  searchRow.style.display = 'flex';
+  results.innerHTML = '<div class="placeholder">Warte auf Eingabe…</div>';
+});
+tabSaved.addEventListener('click', () => {
+  currentTab = 'saved';
+  tabSaved.classList.add('active'); tabSearch.classList.remove('active');
+  searchRow.style.display = 'none';
+  renderSaved();
+});
+
+// ── Parser (mirrors backend.py) ────────────────────────────────────────────
+function parseNavigium(html) {
+  const doc = new DOMParser().parseFromString(html, 'text/html');
+  let section = null;
+  for (const h of doc.querySelectorAll('h3.ergebnis')) {
+    if (h.textContent.includes('Ergebnis der Suche nach lat. Formen')) { section = h; break; }
+  }
+  if (!section) return [];
+  const out = [];
+  let el = section.nextElementSibling;
+  while (el) {
+    if (el.classList.contains('umgebend')) {
+      for (const entry of el.querySelectorAll('.innen')) {
+        try {
+          const headEl = entry.querySelector('div.lemma > span');
+          if (!headEl) continue;
+          const artEl  = entry.querySelector('div.lemma i.wortart > span');
+          const divs   = entry.querySelectorAll(':scope > div');
+          const formen = divs.length > 1 ? divs[1].textContent.trim() : '';
+          const beds   = [...entry.querySelectorAll('ol[type="I"] > li > div.bedeutung')]
+                           .map(m => m.textContent.trim()).filter(Boolean);
+          out.push({ head: headEl.textContent.trim(), art: artEl?.textContent.trim() || '', formen, bedeutungen: beds });
+        } catch(_) {}
+      }
+    }
+    el = el.nextElementSibling;
+  }
+  return out;
+}
+
+// ── Fetch with proxy fallback ──────────────────────────────────────────────
+async function fetchWord(word) {
+  const url = `https://www.navigium.de/latein-woerterbuch/${encodeURIComponent(word.toLowerCase())}?wb=gross`;
+  const proxies = [
+    async () => {
+      const r = await fetch(`https://api.allorigins.win/get?url=${encodeURIComponent(url)}`);
+      const j = await r.json();
+      if (!j.contents) throw new Error('empty');
+      return j.contents;
+    },
+    async () => {
+      const r = await fetch(`https://corsproxy.io/?${encodeURIComponent(url)}`);
+      if (!r.ok) throw new Error('bad status');
+      return r.text();
+    },
+  ];
+  for (const proxy of proxies) {
+    try { return await proxy(); } catch(_) {}
+  }
+  throw new Error('Alle Proxies fehlgeschlagen');
+}
+
+// ── Cards ──────────────────────────────────────────────────────────────────
+function escH(s){ return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/"/g,'&quot;'); }
+
+function makeCard(data, word, isSaved=false) {
+  const uid = 'c' + Math.random().toString(36).slice(2);
+  const key = word + '||' + data.head;
+  const alreadySaved = saved.some(s => s.key === key);
+
+  const starBtn = isSaved
+    ? `<button class="card-btn" title="Löschen" onclick="deleteSaved('${escH(key)}')">🗑️</button>`
+    : `<button class="card-btn" id="star${uid}" title="Speichern"
+             onclick="saveCard('${escH(key)}','${escH(word)}','star${uid}')"
+             style="color:${alreadySaved ? 'var(--cyan)' : 'var(--muted)'}">${alreadySaved ? '✓' : '⭐'}</button>`;
+
+  const meanings = data.bedeutungen.length
+    ? data.bedeutungen.map(b => `<span class="arr">➔</span> ${escH(b)}`).join('<br/>')
+    : '<span style="color:var(--muted)">–</span>';
+
+  return `<div class="card" id="${uid}" data-key="${escH(key)}">
+    <div class="card-hd">
+      <div class="card-title">
+        <span class="card-head">${escH(data.head)}</span>
+        <span class="card-art">(${escH(data.art)})</span>
+      </div>
+      <div class="card-actions">
+        <button class="card-btn" title="Kopieren" onclick="copyCard('${uid}')">📋</button>
+        ${starBtn}
+      </div>
+    </div>
+    <div class="card-forms">${escH(data.formen)}</div>
+    <div class="card-meanings">${meanings}</div>
+  </div>`;
+}
+
+window.copyCard = uid => {
+  const el = document.getElementById(uid); if (!el) return;
+  const text = el.querySelector('.card-head').textContent + ' – ' +
+               el.querySelector('.card-meanings').textContent.replace(/➔/g,'').trim();
+  navigator.clipboard?.writeText(text);
+  const btn = el.querySelector('[title="Kopieren"]');
+  if (btn) { btn.textContent = '✓'; setTimeout(() => btn.textContent = '📋', 1500); }
+};
+
+window.saveCard = (key, word, starId) => {
+  if (saved.some(s => s.key === key)) return;
+  // find data from cache
+  const data = cache[word.toLowerCase()]?.find(r => (word+'||'+r.head) === key);
+  if (!data) return;
+  saved.push({ key, word, data });
+  localStorage.setItem('nav_saved', JSON.stringify(saved));
+  const btn = document.getElementById(starId);
+  if (btn) { btn.textContent = '✓'; btn.style.color = 'var(--cyan)'; btn.disabled = true; }
+  rebuildHistory();
+};
+
+window.deleteSaved = key => {
+  saved = saved.filter(s => s.key !== key);
+  localStorage.setItem('nav_saved', JSON.stringify(saved));
+  renderSaved();
+  rebuildHistory();
+};
+
+function renderSaved() {
+  results.innerHTML = saved.length === 0
+    ? '<div class="placeholder">Noch keine Vokabeln gespeichert.<br/>Klicke auf ⭐ bei einem Suchergebnis.</div>'
+    : saved.map(s => makeCard(s.data, s.word, true)).join('');
+}
+
+// ── Search ─────────────────────────────────────────────────────────────────
+async function doSearch(word) {
+  word = word.trim(); if (!word) return;
+  if (currentTab !== 'search') { tabSearch.click(); }
+
+  searchBtn.disabled = true;
+  prog.classList.add('on');
+  statusChip.textContent = '⏳ Suche…';
+  results.innerHTML = '';
+
+  const key = word.toLowerCase();
+  try {
+    let res;
+    if (cache[key]) {
+      res = cache[key];
+    } else {
+      const html = await fetchWord(word);
+      res = parseNavigium(html);
+      cache[key] = res;
+    }
+
+    prog.classList.remove('on');
+    searchBtn.disabled = false;
+    statusChip.textContent = 'Bereit';
+
+    if (res.length === 0) {
+      results.innerHTML = `<div class="error">⚠️ Keine Treffer für „${escH(word)}" gefunden.</div>`;
+    } else {
+      results.innerHTML =
+        `<div class="results-label">Ergebnisse für »${escH(word)}«</div>` +
+        res.map(r => makeCard(r, word)).join('');
+    }
+  } catch(err) {
+    prog.classList.remove('on');
+    searchBtn.disabled = false;
+    statusChip.textContent = 'Fehler';
+    results.innerHTML = `<div class="error">⚠️ Verbindungsfehler: ${escH(err.message)}</div>`;
+  }
+
+  history = [word, ...history.filter(h => h !== word)].slice(0, 20);
+  localStorage.setItem('nav_history', JSON.stringify(history));
+  rebuildHistory();
+}
+
+searchBtn.addEventListener('click',  () => doSearch(searchField.value));
+searchField.addEventListener('keydown', e => { if (e.key === 'Enter') doSearch(searchField.value); });
+
+// ── Init ───────────────────────────────────────────────────────────────────
+rebuildHistory();
+if (history.length) searchField.value = history[0];
+</script>
+</body>
+</html>
