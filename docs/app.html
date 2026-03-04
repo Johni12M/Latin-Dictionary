@@ -270,8 +270,8 @@ function parseNavigium(html) {
           // Direct div children (same as BeautifulSoup find_all('div', recursive=False))
           const directDivs = [...entry.children].filter(c => c.tagName === 'DIV');
           const formen = directDivs.length > 1 ? directDivs[1].textContent.trim() : '';
-          // .bedeutung can be nested inside li, not necessarily a direct child
-          const beds = [...entry.querySelectorAll('ol li .bedeutung')]
+          // Match BeautifulSoup: find any div.bedeutung descendant (no path restriction)
+          const beds = [...entry.querySelectorAll('div.bedeutung')]
                          .map(m => m.textContent.trim()).filter(Boolean);
           out.push({ head: headEl.textContent.trim(), art: artEl?.textContent.trim() || '', formen, bedeutungen: beds });
         } catch(_) {}
