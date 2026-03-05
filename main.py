@@ -114,6 +114,7 @@ def main(page: ft.Page):
     # Search animation
     _anim_stop = {"v": False}
     _results_lock = threading.Lock()   # guards the clear→fill→snapshot in display_results
+    _search_cancelled = {"v": False}
     _braille = ["⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏"]
 
     anim_spinner = ft.Text("⠋", size=40, color=ft.Colors.CYAN_ACCENT, font_family="Consolas")
@@ -145,6 +146,26 @@ def main(page: ft.Page):
         visible=False,
     )
 
+    # Inline error banner (shown instead of SnackBar for reliability)
+    _error_text = ft.Text("", color=ft.Colors.AMBER_ACCENT, size=13)
+    error_row = ft.Container(
+        visible=False,
+        bgcolor=ft.Colors.with_opacity(0.12, ft.Colors.AMBER),
+        border_radius=8,
+        padding=ft.padding.symmetric(horizontal=16, vertical=10),
+        content=ft.Row([
+            ft.Icon(ft.Icons.SEARCH_OFF, color=ft.Colors.AMBER_ACCENT, size=18),
+            _error_text,
+        ], spacing=10),
+    )
+
+    def _show_error(msg):
+        _error_text.value = msg
+        error_row.visible = True
+
+    def _hide_error():
+        error_row.visible = False
+
     # Simple tab buttons for navigation
     current_tab = {"index": 0}  
     
@@ -173,6 +194,7 @@ def main(page: ft.Page):
             else:
                 show_placeholder()
         else:
+            error_row.visible = False
             if _results_lock.acquire(blocking=False):
                 try:
                     app_state["search_controls"] = list(results_view.controls)
@@ -245,6 +267,8 @@ def main(page: ft.Page):
         word = search_input.value.strip()
         if not word: return
 
+        _search_cancelled["v"] = False
+        _hide_error()
         page.title = f"🔍 {word} – Navigium"
         search_btn.disabled = True
         if app_state["showing_placeholder"]:
@@ -276,33 +300,35 @@ def main(page: ft.Page):
             page.title = "Navigium Latin Dictionary"
             app_state["last_word"] = word
 
+            # Discarded if user pressed Escape
+            if _search_cancelled["v"]:
+                _search_cancelled["v"] = False
+                return
+
             is_error = not results or "error" in results[0]
 
             if is_error:
-                # Don't wipe existing results or pollute history on a failed lookup
+                # Keep existing results, show inline error banner
                 msg = results[0]["error"] if results else "Unbekannter Fehler."
-                page.open(ft.SnackBar(
-                    content=ft.Row([
-                        ft.Icon(ft.Icons.SEARCH_OFF, color=ft.Colors.AMBER),
-                        ft.Text(f"  {msg}", color=ft.Colors.WHITE),
-                    ]),
-                    bgcolor=ft.Colors.with_opacity(0.92, ft.Colors.SURFACE_CONTAINER_HIGH),
-                    duration=4000,
-                ))
+                _show_error(msg)
                 return
 
+            _hide_error()
             if not skip_history:
                 update_history_ui(word)
 
+            on_search_tab = current_tab["index"] == 0
+            cards = []
+            cards.append(ft.Text(f"Ergebnisse für »{word}«",
+                                  size=16, weight=ft.FontWeight.BOLD, color=ft.Colors.OUTLINE))
+            for item in results:
+                cards.append(create_result_card(item))
+
             with _results_lock:
-                results_view.controls.clear()
-                results_view.controls.append(
-                    ft.Text(f"Ergebnisse für »{word}«",
-                            size=16, weight=ft.FontWeight.BOLD, color=ft.Colors.OUTLINE)
-                )
-                for item in results:
-                    results_view.controls.append(create_result_card(item))
-                app_state["search_controls"] = list(results_view.controls)
+                app_state["search_controls"] = list(cards)
+                if on_search_tab:
+                    results_view.controls.clear()
+                    results_view.controls.extend(cards)
         finally:
             page.update()
 
@@ -381,6 +407,7 @@ def main(page: ft.Page):
             ft.Container(height=6),
             search_row,
             search_progress_bar,
+            error_row,
             results_view
         ])
     )
@@ -388,6 +415,15 @@ def main(page: ft.Page):
     page.add(
         ft.Row([sidebar, main_content], expand=True)
     )
+
+    def on_keyboard(e: ft.KeyboardEvent):
+        if e.key == "Escape" and search_progress_bar.visible:
+            _search_cancelled["v"] = True
+            search_progress_bar.visible = False
+            search_btn.disabled = False
+            page.update()
+
+    page.on_keyboard_event = on_keyboard
 
     # Load persisted data synchronously — SQLite reads are fast and
     # page.update() is unreliable from a background thread on startup.
