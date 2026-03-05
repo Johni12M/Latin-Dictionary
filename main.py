@@ -161,6 +161,10 @@ def main(page: ft.Page):
         # ------------------------------------------------------------------------
         
         if current_tab["index"] == 0:
+            # Always reset loading state when returning to search tab,
+            # in case a background-thread page.update() was silently dropped.
+            search_progress_bar.visible = False
+            search_btn.disabled = False
             results_view.controls.clear()
             search_row.visible = True
             if app_state["search_controls"]:
@@ -265,41 +269,42 @@ def main(page: ft.Page):
         threading.Thread(target=do_lookup, daemon=True).start()
 
     def display_results(results, word, skip_history=False):
-        _anim_stop["v"] = True
-        search_progress_bar.visible = False
-        search_btn.disabled = False
-        page.title = "Navigium Latin Dictionary"
-        app_state["last_word"] = word
+        try:
+            _anim_stop["v"] = True
+            search_progress_bar.visible = False
+            search_btn.disabled = False
+            page.title = "Navigium Latin Dictionary"
+            app_state["last_word"] = word
 
-        is_error = not results or "error" in results[0]
+            is_error = not results or "error" in results[0]
 
-        if is_error:
-            # Don't wipe existing results or pollute history on a failed lookup
-            msg = results[0]["error"] if results else "Unbekannter Fehler."
-            page.open(ft.SnackBar(
-                content=ft.Row([
-                    ft.Icon(ft.Icons.SEARCH_OFF, color=ft.Colors.AMBER),
-                    ft.Text(f"  {msg}", color=ft.Colors.WHITE),
-                ]),
-                bgcolor=ft.Colors.with_opacity(0.92, ft.Colors.SURFACE_CONTAINER_HIGH),
-                duration=4000,
-            ))
+            if is_error:
+                # Don't wipe existing results or pollute history on a failed lookup
+                msg = results[0]["error"] if results else "Unbekannter Fehler."
+                page.open(ft.SnackBar(
+                    content=ft.Row([
+                        ft.Icon(ft.Icons.SEARCH_OFF, color=ft.Colors.AMBER),
+                        ft.Text(f"  {msg}", color=ft.Colors.WHITE),
+                    ]),
+                    bgcolor=ft.Colors.with_opacity(0.92, ft.Colors.SURFACE_CONTAINER_HIGH),
+                    duration=4000,
+                ))
+                return
+
+            if not skip_history:
+                update_history_ui(word)
+
+            with _results_lock:
+                results_view.controls.clear()
+                results_view.controls.append(
+                    ft.Text(f"Ergebnisse für »{word}«",
+                            size=16, weight=ft.FontWeight.BOLD, color=ft.Colors.OUTLINE)
+                )
+                for item in results:
+                    results_view.controls.append(create_result_card(item))
+                app_state["search_controls"] = list(results_view.controls)
+        finally:
             page.update()
-            return
-
-        if not skip_history:
-            update_history_ui(word)
-
-        with _results_lock:
-            results_view.controls.clear()
-            results_view.controls.append(
-                ft.Text(f"Ergebnisse für »{word}«",
-                        size=16, weight=ft.FontWeight.BOLD, color=ft.Colors.OUTLINE)
-            )
-            for item in results:
-                results_view.controls.append(create_result_card(item))
-            app_state["search_controls"] = list(results_view.controls)
-        page.update()
 
     def create_result_card(data, is_saved=False):
         meanings_column = ft.Column(spacing=5)
