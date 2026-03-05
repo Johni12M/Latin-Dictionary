@@ -2,8 +2,12 @@
 import sys
 import time
 import math
+import socket
 import threading
 import backend
+
+# Global socket timeout — caps DNS + TCP connect + read on all platforms
+socket.setdefaulttimeout(10)
 
 def main(page: ft.Page):
     page.title = "Navigium Latin Dictionary"
@@ -115,6 +119,7 @@ def main(page: ft.Page):
     _anim_stop = {"v": False}
     _results_lock = threading.Lock()   # guards the clear→fill→snapshot in display_results
     _search_cancelled = {"v": False}
+    _showing_error = {"v": False}      # True when results_view shows an error widget
     _braille = ["⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏"]
 
     anim_spinner = ft.Text("⠋", size=40, color=ft.Colors.CYAN_ACCENT, font_family="Consolas")
@@ -163,9 +168,7 @@ def main(page: ft.Page):
         error_row.visible = True
 
     def _hide_error():
-        error_row.visible = False
-
-    # Simple tab buttons for navigation
+        error_row.visible = False    # Simple tab buttons for navigation
     current_tab = {"index": 0}  
     
     def tab_changed(e):
@@ -194,7 +197,7 @@ def main(page: ft.Page):
                 show_placeholder()
         else:
             error_row.visible = False
-            if _results_lock.acquire(blocking=False):
+            if not _showing_error["v"] and _results_lock.acquire(blocking=False):
                 try:
                     app_state["search_controls"] = list(results_view.controls)
                 finally:
@@ -283,25 +286,10 @@ def main(page: ft.Page):
             if key in app_state["cache"]:
                 display_results(app_state["cache"][key], word)
                 return
-
-            result_box = [None]
-
-            def fetch():
-                result_box[0] = backend.lookup_vocab_bs(word)
-
-            fetch_thread = threading.Thread(target=fetch, daemon=True)
-            fetch_thread.start()
-            fetch_thread.join(timeout=10)
-
-            if fetch_thread.is_alive():
-                # Hard 10 s cutoff — treat as a timeout error
-                results = [{"error": "Zeitüberschreitung – bitte nochmal versuchen."}]
-            else:
-                results = result_box[0]
-                if results and "error" not in results[0]:
-                    app_state["cache"][key] = results
-                    backend.save_cache_entry(key, results)
-
+            results = backend.lookup_vocab_bs(word)
+            if results and "error" not in results[0]:
+                app_state["cache"][key] = results
+                backend.save_cache_entry(key, results)
             display_results(results, word)
 
         threading.Thread(target=do_lookup, daemon=True).start()
@@ -314,23 +302,40 @@ def main(page: ft.Page):
             page.title = "Navigium Latin Dictionary"
             app_state["last_word"] = word
 
-            # Discarded if user pressed Escape
-            if _search_cancelled["v"]:
+            cancelled = _search_cancelled["v"]
+            if cancelled:
                 _search_cancelled["v"] = False
-                _show_error("Suche abgebrochen.", icon=ft.Icons.CANCEL_OUTLINED)
-                return
 
-            is_error = not results or "error" in results[0]
+            is_error = cancelled or not results or "error" in results[0]
 
             if is_error:
-                # Keep existing results, show inline error banner
-                msg = results[0]["error"] if results else "Unbekannter Fehler."
-                _show_error(msg)
+                if cancelled:
+                    msg = "Suche abgebrochen."
+                    icon = ft.Icons.CANCEL_OUTLINED
+                else:
+                    msg = results[0]["error"] if results else "Unbekannter Fehler."
+                    icon = ft.Icons.SEARCH_OFF
+                # Render error inside results_view — same codepath as success,
+                # so Flet reliably propagates the update from the background thread.
+                # search_controls is NOT updated, so tab-switching restores prior results.
+                _showing_error["v"] = True
+                with _results_lock:
+                    results_view.controls.clear()
+                    results_view.controls.append(
+                        ft.Container(
+                            padding=ft.padding.symmetric(horizontal=16, vertical=20),
+                            content=ft.Row([
+                                ft.Icon(icon, color=ft.Colors.AMBER_ACCENT, size=22),
+                                ft.Text(msg, color=ft.Colors.AMBER_ACCENT, size=14),
+                            ], spacing=12),
+                        )
+                    )
                 return
 
-            _hide_error()
             if not skip_history:
                 update_history_ui(word)
+
+            _showing_error["v"] = False
 
             on_search_tab = current_tab["index"] == 0
             cards = []
