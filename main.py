@@ -113,7 +113,7 @@ def main(page: ft.Page):
 
     # Search animation
     _anim_stop = {"v": False}
-    _search_in_progress = {"v": False}
+    _results_lock = threading.Lock()   # guards the clear→fill→snapshot in display_results
     _braille = ["⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏"]
 
     anim_spinner = ft.Text("⠋", size=40, color=ft.Colors.CYAN_ACCENT, font_family="Consolas")
@@ -169,8 +169,12 @@ def main(page: ft.Page):
             else:
                 show_placeholder()
         else:
-            if not _search_in_progress["v"]:
-                app_state["search_controls"] = list(results_view.controls)
+            if _results_lock.acquire(blocking=False):
+                try:
+                    app_state["search_controls"] = list(results_view.controls)
+                finally:
+                    _results_lock.release()
+            # if lock is held, display_results is mid-update; keep last good search_controls
             results_view.controls.clear()
             search_row.visible = False
             if not app_state["saved"]:
@@ -243,7 +247,6 @@ def main(page: ft.Page):
             results_view.controls.clear()
             app_state["showing_placeholder"] = False
         search_progress_bar.visible = True
-        _search_in_progress["v"] = True
         page.update()
 
         threading.Thread(target=_start_search_anim, args=(word,), daemon=True).start()
@@ -263,7 +266,6 @@ def main(page: ft.Page):
 
     def display_results(results, word, skip_history=False):
         _anim_stop["v"] = True
-        _search_in_progress["v"] = False
         search_progress_bar.visible = False
         search_btn.disabled = False
         page.title = "Navigium Latin Dictionary"
@@ -271,19 +273,19 @@ def main(page: ft.Page):
         if not skip_history:
             update_history_ui(word)
 
-        results_view.controls.clear()
-        if not results or "error" in results[0]:
-            msg = results[0]["error"] if results else "Unbekannter Fehler."
-            results_view.controls.append(ft.Text(f"⚠️ {msg}", color=ft.Colors.ERROR, size=14))
-        else:
-            results_view.controls.append(
-                ft.Text(f"Ergebnisse für »{word}«",
-                        size=16, weight=ft.FontWeight.BOLD, color=ft.Colors.OUTLINE)
-            )
-            for item in results:
-                results_view.controls.append(create_result_card(item))
-
-        app_state["search_controls"] = list(results_view.controls)
+        with _results_lock:
+            results_view.controls.clear()
+            if not results or "error" in results[0]:
+                msg = results[0]["error"] if results else "Unbekannter Fehler."
+                results_view.controls.append(ft.Text(f"⚠️ {msg}", color=ft.Colors.ERROR, size=14))
+            else:
+                results_view.controls.append(
+                    ft.Text(f"Ergebnisse für »{word}«",
+                            size=16, weight=ft.FontWeight.BOLD, color=ft.Colors.OUTLINE)
+                )
+                for item in results:
+                    results_view.controls.append(create_result_card(item))
+            app_state["search_controls"] = list(results_view.controls)
         page.update()
 
     def create_result_card(data, is_saved=False):
