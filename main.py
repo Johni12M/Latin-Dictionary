@@ -148,18 +148,17 @@ def main(page: ft.Page):
 
     # Inline error banner (shown instead of SnackBar for reliability)
     _error_text = ft.Text("", color=ft.Colors.AMBER_ACCENT, size=13)
+    _error_icon = ft.Icon(ft.Icons.SEARCH_OFF, color=ft.Colors.AMBER_ACCENT, size=18)
     error_row = ft.Container(
         visible=False,
         bgcolor=ft.Colors.with_opacity(0.12, ft.Colors.AMBER),
         border_radius=8,
         padding=ft.padding.symmetric(horizontal=16, vertical=10),
-        content=ft.Row([
-            ft.Icon(ft.Icons.SEARCH_OFF, color=ft.Colors.AMBER_ACCENT, size=18),
-            _error_text,
-        ], spacing=10),
+        content=ft.Row([_error_icon, _error_text], spacing=10),
     )
 
-    def _show_error(msg):
+    def _show_error(msg, icon=ft.Icons.SEARCH_OFF):
+        _error_icon.name = icon
         _error_text.value = msg
         error_row.visible = True
 
@@ -282,12 +281,27 @@ def main(page: ft.Page):
         def do_lookup():
             key = word.lower()
             if key in app_state["cache"]:
-                results = app_state["cache"][key]
+                display_results(app_state["cache"][key], word)
+                return
+
+            result_box = [None]
+
+            def fetch():
+                result_box[0] = backend.lookup_vocab_bs(word)
+
+            fetch_thread = threading.Thread(target=fetch, daemon=True)
+            fetch_thread.start()
+            fetch_thread.join(timeout=15)
+
+            if fetch_thread.is_alive():
+                # Hard 15 s cutoff — treat as a timeout error
+                results = [{"error": "Zeitüberschreitung (15 s) – bitte nochmal versuchen."}]
             else:
-                results = backend.lookup_vocab_bs(word)
+                results = result_box[0]
                 if results and "error" not in results[0]:
                     app_state["cache"][key] = results
                     backend.save_cache_entry(key, results)
+
             display_results(results, word)
 
         threading.Thread(target=do_lookup, daemon=True).start()
@@ -303,6 +317,7 @@ def main(page: ft.Page):
             # Discarded if user pressed Escape
             if _search_cancelled["v"]:
                 _search_cancelled["v"] = False
+                _show_error("Suche abgebrochen.", icon=ft.Icons.CANCEL_OUTLINED)
                 return
 
             is_error = not results or "error" in results[0]
