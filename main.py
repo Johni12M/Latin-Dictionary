@@ -286,10 +286,24 @@ def main(page: ft.Page):
             if key in app_state["cache"]:
                 display_results(app_state["cache"][key], word)
                 return
-            results = backend.lookup_vocab_bs(word)
-            if results and "error" not in results[0]:
-                app_state["cache"][key] = results
-                backend.save_cache_entry(key, results)
+
+            result_box = [None]
+
+            def fetch():
+                result_box[0] = backend.lookup_vocab_bs(word)
+
+            fetch_thread = threading.Thread(target=fetch, daemon=True)
+            fetch_thread.start()
+            fetch_thread.join(timeout=10)  # hard UI-level cutoff
+
+            if fetch_thread.is_alive():
+                results = [{"error": "Zeitüberschreitung – bitte nochmal versuchen."}]
+            else:
+                results = result_box[0]
+                if results and "error" not in results[0]:
+                    app_state["cache"][key] = results
+                    backend.save_cache_entry(key, results)
+
             display_results(results, word)
 
         threading.Thread(target=do_lookup, daemon=True).start()
