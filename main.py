@@ -291,11 +291,11 @@ def main(page: ft.Page):
 
             fetch_thread = threading.Thread(target=fetch, daemon=True)
             fetch_thread.start()
-            fetch_thread.join(timeout=15)
+            fetch_thread.join(timeout=10)
 
             if fetch_thread.is_alive():
-                # Hard 15 s cutoff — treat as a timeout error
-                results = [{"error": "Zeitüberschreitung (15 s) – bitte nochmal versuchen."}]
+                # Hard 10 s cutoff — treat as a timeout error
+                results = [{"error": "Zeitüberschreitung – bitte nochmal versuchen."}]
             else:
                 results = result_box[0]
                 if results and "error" not in results[0]:

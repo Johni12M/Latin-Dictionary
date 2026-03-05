@@ -163,12 +163,19 @@ def save_vocabs(vocabs):
 
 def lookup_vocab_bs(vocab):
     import requests
+    import socket
     from bs4 import BeautifulSoup
     url = f'https://www.navigium.de/latein-woerterbuch/{vocab}?wb=gross'
     parsed_results = []
 
     try:
-        resp = requests.get(url, timeout=5)
+        # socket.setdefaulttimeout is the only reliable way to cap DNS + TCP on Windows
+        old_timeout = socket.getdefaulttimeout()
+        socket.setdefaulttimeout(8)
+        try:
+            resp = requests.get(url, timeout=8)
+        finally:
+            socket.setdefaulttimeout(old_timeout)
         if resp.status_code != 200:
             return [{"error": f"Fehler: HTTP {resp.status_code}"}]
 
