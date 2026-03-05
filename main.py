@@ -168,7 +168,6 @@ def main(page: ft.Page):
             else:
                 show_placeholder()
         else:
-            app_state["search_controls"] = list(results_view.controls)
             results_view.controls.clear()
             search_row.visible = False
             if not app_state["saved"]:
