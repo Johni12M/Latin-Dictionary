@@ -270,21 +270,34 @@ def main(page: ft.Page):
         search_btn.disabled = False
         page.title = "Navigium Latin Dictionary"
         app_state["last_word"] = word
+
+        is_error = not results or "error" in results[0]
+
+        if is_error:
+            # Don't wipe existing results or pollute history on a failed lookup
+            msg = results[0]["error"] if results else "Unbekannter Fehler."
+            page.open(ft.SnackBar(
+                content=ft.Row([
+                    ft.Icon(ft.Icons.SEARCH_OFF, color=ft.Colors.AMBER),
+                    ft.Text(f"  {msg}", color=ft.Colors.WHITE),
+                ]),
+                bgcolor=ft.Colors.with_opacity(0.92, ft.Colors.SURFACE_CONTAINER_HIGH),
+                duration=4000,
+            ))
+            page.update()
+            return
+
         if not skip_history:
             update_history_ui(word)
 
         with _results_lock:
             results_view.controls.clear()
-            if not results or "error" in results[0]:
-                msg = results[0]["error"] if results else "Unbekannter Fehler."
-                results_view.controls.append(ft.Text(f"⚠️ {msg}", color=ft.Colors.ERROR, size=14))
-            else:
-                results_view.controls.append(
-                    ft.Text(f"Ergebnisse für »{word}«",
-                            size=16, weight=ft.FontWeight.BOLD, color=ft.Colors.OUTLINE)
-                )
-                for item in results:
-                    results_view.controls.append(create_result_card(item))
+            results_view.controls.append(
+                ft.Text(f"Ergebnisse für »{word}«",
+                        size=16, weight=ft.FontWeight.BOLD, color=ft.Colors.OUTLINE)
+            )
+            for item in results:
+                results_view.controls.append(create_result_card(item))
             app_state["search_controls"] = list(results_view.controls)
         page.update()
 
